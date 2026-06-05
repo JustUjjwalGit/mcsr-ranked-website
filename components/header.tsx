@@ -17,14 +17,24 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-sm">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
+    <header className="sticky top-0 z-50 border-b border-primary/30 bg-background/95 backdrop-blur-md">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground">
-            ⛏️
+        <Link href="/" className="flex items-center gap-3 font-bold text-xl group">
+          {/* Minecraft-style Logo */}
+          <div className="relative flex h-12 w-12 items-center justify-center">
+            {/* Outer circular border with glow */}
+            <div className="absolute inset-0 rounded-full border-2 border-primary glow-primary"></div>
+            {/* Minecraft pickaxe icon */}
+            <div className="flex h-8 w-8 items-center justify-center text-lg">
+              ⛏️
+            </div>
           </div>
-          <span className="text-foreground">MCSR RANKED</span>
+          {/* Text branding */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-bold tracking-wider text-muted-foreground">MCSR</span>
+            <span className="text-base font-bold tracking-widest text-primary drop-shadow-lg">RANKED</span>
+          </div>
         </Link>
 
         {/* Navigation */}

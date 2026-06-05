@@ -51,22 +51,22 @@
 :root {
   --background: oklch(0.08 0 0);
   --foreground: oklch(0.95 0 0);
-  --card: oklch(0.15 0 0);
+  --card: oklch(0.12 0 0);
   --card-foreground: oklch(0.95 0 0);
   --popover: oklch(0.15 0 0);
   --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.72 0.25 142);
+  --primary: oklch(0.8 0.28 150);
   --primary-foreground: oklch(0.08 0 0);
   --secondary: oklch(0.25 0 0);
   --secondary-foreground: oklch(0.95 0 0);
   --muted: oklch(0.25 0 0);
   --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.72 0.25 142);
+  --accent: oklch(0.8 0.28 150);
   --accent-foreground: oklch(0.08 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.25 0 0);
-  --input: oklch(0.15 0 0);
-  --ring: oklch(0.72 0.25 142);
+  --border: oklch(0.2 0 0);
+  --input: oklch(0.12 0 0);
+  --ring: oklch(0.8 0.28 150);
   --chart-1: oklch(0.72 0.25 142);
   --chart-2: oklch(0.5 0.15 280);
   --chart-3: oklch(0.45 0.1 280);
@@ -86,22 +86,22 @@
 .dark {
   --background: oklch(0.08 0 0);
   --foreground: oklch(0.95 0 0);
-  --card: oklch(0.15 0 0);
+  --card: oklch(0.12 0 0);
   --card-foreground: oklch(0.95 0 0);
   --popover: oklch(0.15 0 0);
   --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.72 0.25 142);
+  --primary: oklch(0.8 0.28 150);
   --primary-foreground: oklch(0.08 0 0);
   --secondary: oklch(0.25 0 0);
   --secondary-foreground: oklch(0.95 0 0);
   --muted: oklch(0.25 0 0);
   --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.72 0.25 142);
+  --accent: oklch(0.8 0.28 150);
   --accent-foreground: oklch(0.08 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.25 0 0);
-  --input: oklch(0.15 0 0);
-  --ring: oklch(0.72 0.25 142);
+  --border: oklch(0.2 0 0);
+  --input: oklch(0.12 0 0);
+  --ring: oklch(0.8 0.28 150);
   --chart-1: oklch(0.72 0.25 142);
   --chart-2: oklch(0.5 0.15 280);
   --chart-3: oklch(0.45 0.1 280);
@@ -121,21 +121,65 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground relative;
+    position: relative;
+  }
+  /* Neon bottom glow effect */
+  body::before {
+    content: '';
+    position: fixed;
+    bottom: -100px;
+    left: -10%;
+    width: 120%;
+    height: 300px;
+    background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 30%, rgba(139, 92, 246, 0) 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+  /* Additional purple accent glow */
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -80px;
+    right: -5%;
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse at center, rgba(168, 85, 247, 0.25) 0%, rgba(168, 85, 247, 0.1) 40%, rgba(168, 85, 247, 0) 70%);
+    pointer-events: none;
+    z-index: -1;
   }
 }
 
 /* Glow effects for gaming aesthetic */
 .glow-primary {
-  @apply shadow-lg shadow-primary/20;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
 }
 
 .glow-primary-intense {
-  @apply shadow-xl shadow-primary/40;
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.6), 0 0 60px rgba(139, 92, 246, 0.3);
+}
+
+/* Minecraft-themed blocks decoration */
+.minecraft-blocks {
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 92, 246, 0.1) 2px,
+      rgba(139, 92, 246, 0.1) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 92, 246, 0.1) 2px,
+      rgba(139, 92, 246, 0.1) 4px
+    );
 }
 
 /* Smooth transitions */

@@ -74,7 +74,7 @@ export function Dashboard() {
       {/* Top Player Section */}
       <div className="grid gap-8 md:grid-cols-3">
         <div className="md:col-span-1">
-          <div className="border border-border bg-card p-6 rounded-lg">
+          <div className="border border-primary/40 bg-card p-6 rounded-lg glow-primary">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase text-muted-foreground">
                 Top 1 Ranked Player
@@ -156,7 +156,7 @@ export function Dashboard() {
 
         {/* Leaderboard Preview */}
         <div className="md:col-span-2">
-          <div className="border border-border bg-card p-6 rounded-lg">
+          <div className="border border-primary/40 bg-card p-6 rounded-lg glow-primary">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase text-muted-foreground">
                 Global Leaderboard
@@ -217,7 +217,7 @@ export function Dashboard() {
 
       {/* Recent Matches */}
       <div>
-        <div className="border border-border bg-card p-6 rounded-lg">
+        <div className="border border-primary/40 bg-card p-6 rounded-lg glow-primary">
           <div className="space-y-4">
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
               Recent Matches
