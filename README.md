@@ -12,6 +12,7 @@ A full-featured competitive Minecraft speedrunning platform with real-time leade
 - **Player Directory**: Browse top speedrunners with player cards and quick stats
 - **Dark Gaming Aesthetic**: Purple and green accent colors with smooth animations and hover effects
 - **Real-time Data**: Integrated with MCSR Ranked API for live data synchronization
+- **Rate Limiting**: All API endpoints are protected with 500 requests per 10 minutes rate limiting
 - **Responsive Design**: Mobile-first approach with full responsiveness across all devices
 
 ## Tech Stack
@@ -182,6 +183,37 @@ pnpm test
 ```bash
 pnpm lint
 ```
+
+## API Reference
+
+All API endpoints include **rate limiting of 500 requests per 10 minutes**.
+
+### Endpoints
+
+- **GET** `/api/leaderboard` - Fetch global leaderboard
+  - Query: `season`, `offset`, `limit`
+  - Returns: Player rankings with Elo ratings
+
+- **GET** `/api/player` - Fetch player details
+  - Query: `username`
+  - Returns: Player profile and statistics
+
+- **GET** `/api/matches` - Fetch match history
+  - Query: `offset`, `limit`, `player`
+  - Returns: Recent matches with results
+
+- **GET** `/api/stats` - Fetch global statistics
+  - Query: `season`
+  - Returns: Community-wide metrics
+
+### Rate Limit Headers
+
+All responses include:
+- `X-RateLimit-Limit`: 500
+- `X-RateLimit-Remaining`: Requests left
+- `X-RateLimit-Reset`: Reset timestamp
+
+Rate limit exceeded returns HTTP 429 with `{"error": "Too many requests. Rate limit exceeded."}`
 
 ## Features Roadmap
 

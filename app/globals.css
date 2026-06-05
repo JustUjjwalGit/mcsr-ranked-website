@@ -129,63 +129,61 @@
   }
 }
 
-@layer components {
-  /* Glow effects for gaming aesthetic */
-  .glow-primary {
-    @apply shadow-lg shadow-primary/20;
-  }
+/* Glow effects for gaming aesthetic */
+.glow-primary {
+  @apply shadow-lg shadow-primary/20;
+}
 
-  .glow-primary-intense {
-    @apply shadow-xl shadow-primary/40;
-  }
+.glow-primary-intense {
+  @apply shadow-xl shadow-primary/40;
+}
 
-  /* Smooth transitions */
-  .transition-smooth {
-    @apply transition-all duration-300 ease-in-out;
-  }
+/* Smooth transitions */
+.transition-smooth {
+  @apply transition-all duration-300 ease-in-out;
+}
 
-  /* Card hover effect */
-  .card-hover {
-    @apply transition-smooth hover:shadow-lg hover:shadow-primary/10 hover:border-primary/50;
-  }
+/* Card hover effect */
+.card-hover {
+  @apply transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/10 hover:border-primary/50;
+}
 
-  /* Loading skeleton */
-  @keyframes shimmer {
-    0% {
-      background-position: -1000px 0;
-    }
-    100% {
-      background-position: 1000px 0;
-    }
+/* Loading skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
   }
+  100% {
+    background-position: 1000px 0;
+  }
+}
 
-  .animate-shimmer {
-    animation: shimmer 2s infinite;
-    background: linear-gradient(
-      90deg,
-      var(--color-muted),
-      var(--color-muted) 20%,
-      var(--color-muted) 40%,
-      var(--color-muted)
-    );
-    background-size: 1000px 100%;
-  }
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    90deg,
+    var(--color-muted),
+    var(--color-muted) 20%,
+    var(--color-muted) 40%,
+    var(--color-muted)
+  );
+  background-size: 1000px 100%;
+}
 
-  /* Scrollbar styling */
-  ::-webkit-scrollbar {
-    @apply h-2 w-2;
-  }
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  @apply h-2 w-2;
+}
 
-  ::-webkit-scrollbar-track {
-    @apply bg-background;
-  }
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
 
-  ::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-muted hover:bg-muted-foreground;
-  }
+::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-muted hover:bg-muted-foreground;
+}
 
-  /* Selection styling */
-  ::selection {
-    @apply bg-primary text-primary-foreground;
-  }
+/* Selection styling */
+::selection {
+  @apply bg-primary text-primary-foreground;
 }
