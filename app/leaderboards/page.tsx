@@ -5,6 +5,7 @@ import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Search } from 'lucide-react'
+import { mapLeaderboardEntry, parseLeaderboardUsers } from '@/lib/mcsr'
 
 interface LeaderboardEntry {
   rank: number
@@ -27,23 +28,18 @@ export default function LeaderboardsPage() {
     async function loadLeaderboard() {
       try {
         setLoading(true)
-        const res = await fetch(`/api/leaderboard?season=${season}`)
+        const seasonParam =
+          season === 'current' || season === 'all' ? '' : `season=${season}`
+        const res = await fetch(
+          `/api/leaderboard${seasonParam ? `?${seasonParam}` : ''}`,
+        )
         const data = await res.json()
+        const entries = parseLeaderboardUsers(data).map(mapLeaderboardEntry)
 
-        if (data.data?.users && Array.isArray(data.data.users)) {
-          const entries = data.data.users.map((entry: any) => ({
-            rank: entry.eloRank || 1,
-            username: entry.nickname,
-            elo: entry.eloRate || 0,
-            wins: 0,
-            losses: 0,
-            country: entry.country,
-          }))
-          setLeaderboard(entries)
-          setFilteredLeaderboard(entries)
-        }
+        setLeaderboard(entries)
+        setFilteredLeaderboard(entries)
       } catch (error) {
-        console.error('[v0] Failed to load leaderboard:', error)
+        console.error('Failed to load leaderboard:', error)
       } finally {
         setLoading(false)
       }
@@ -152,7 +148,7 @@ export default function LeaderboardsPage() {
                   ) : filteredLeaderboard.length > 0 ? (
                     filteredLeaderboard.map((entry) => (
                       <tr
-                        key={entry.rank}
+                        key={entry.username}
                         className="border-b border-border transition hover:bg-muted/50"
                       >
                         <td className="px-6 py-4">

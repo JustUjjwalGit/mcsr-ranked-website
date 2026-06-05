@@ -25,13 +25,20 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   
-  const count = searchParams.get('count')
+  const player =
+    searchParams.get('player') ??
+    searchParams.get('username') ??
+    searchParams.get('identifier')
+  const count =
+    searchParams.get('count') ?? searchParams.get('limit') ?? '50'
   const after = searchParams.get('after')
   const before = searchParams.get('before')
   const sort = searchParams.get('sort')
 
   try {
-    let endpoint = '/matches'
+    let endpoint = player
+      ? `/users/${encodeURIComponent(player)}/matches`
+      : '/matches'
     const params = new URLSearchParams()
     
     if (count) params.append('count', count)

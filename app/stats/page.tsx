@@ -5,7 +5,7 @@ import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 
 interface GlobalStats {
-  totalMatches: number
+  totalMatches: number | null
   totalPlayers: number
   averageElo: number
   topCountry: string
@@ -31,7 +31,7 @@ export default function StatsPage() {
           setStats(data.stats)
         }
       } catch (error) {
-        console.error('[v0] Failed to load stats:', error)
+        console.error('Failed to load stats:', error)
       } finally {
         setLoading(false)
       }
@@ -82,7 +82,9 @@ export default function StatsPage() {
               <Card className="border border-border bg-card p-6">
                 <p className="text-sm text-muted-foreground mb-2">Total Matches</p>
                 <p className="text-3xl font-bold text-foreground">
-                  {stats?.totalMatches?.toLocaleString() || '0'}
+                  {stats?.totalMatches != null
+                    ? stats.totalMatches.toLocaleString()
+                    : '—'}
                 </p>
               </Card>
 

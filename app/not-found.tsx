@@ -1,7 +1,8 @@
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
+import { cn } from '@/lib/utils'
 
 export default function NotFound() {
   return (
@@ -19,12 +20,15 @@ export default function NotFound() {
           </p>
 
           <div className="flex gap-4 justify-center">
-            <Button asChild>
-              <Link href="/">Go Home</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/leaderboards">View Leaderboard</Link>
-            </Button>
+            <Link href="/" className={cn(buttonVariants())}>
+              Go Home
+            </Link>
+            <Link
+              href="/leaderboards"
+              className={cn(buttonVariants({ variant: 'outline' }))}
+            >
+              View Leaderboard
+            </Link>
           </div>
         </div>
       </main>

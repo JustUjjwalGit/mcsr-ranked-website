@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { mapLeaderboardEntry, mapMatchToCard, parseMatchList, parseUserProfile } from '@/lib/mcsr'
 
 interface PlayerProfile {
   username: string
@@ -51,15 +52,24 @@ export default function PlayerPage() {
 
         const playerData = await playerRes.json()
         const matchesData = await matchesRes.json()
+        const profile = parseUserProfile(playerData)
 
-        if (playerData.player) {
-          setPlayer(playerData.player)
+        if (profile) {
+          const mapped = mapLeaderboardEntry(profile)
+          setPlayer({
+            ...mapped,
+            joinDate: undefined,
+            lastActive: undefined,
+          })
         }
-        if (matchesData.matches) {
-          setMatches(matchesData.matches)
-        }
+
+        setMatches(
+          parseMatchList(matchesData).map((match) =>
+            mapMatchToCard(match, username),
+          ),
+        )
       } catch (error) {
-        console.error('[v0] Failed to load player:', error)
+        console.error('Failed to load player:', error)
       } finally {
         setLoading(false)
       }

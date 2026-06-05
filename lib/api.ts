@@ -22,13 +22,21 @@ export async function fetchAPI(
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`[v0] API Error ${response.status}:`, errorText)
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`API error ${response.status} for ${endpoint}:`, errorText)
+      }
       throw new Error(`API Error: ${response.status} - ${errorText}`)
     }
 
-    return await response.json()
+    const json = await response.json()
+    if (json?.status === 'error' && process.env.NODE_ENV === 'development') {
+      console.error(`API returned error for ${endpoint}:`, json)
+    }
+    return json
   } catch (error) {
-    console.error(`[v0] API Error fetching ${endpoint}:`, error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`API error fetching ${endpoint}:`, error)
+    }
     throw error
   }
 }

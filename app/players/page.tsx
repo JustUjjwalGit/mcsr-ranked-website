@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { mapLeaderboardEntry, parseLeaderboardUsers } from '@/lib/mcsr'
 
 interface PlayerCard {
   username: string
@@ -23,14 +25,11 @@ export default function PlayersPage() {
   useEffect(() => {
     async function loadPlayers() {
       try {
-        const res = await fetch('/api/leaderboard?limit=50')
+        const res = await fetch('/api/leaderboard')
         const data = await res.json()
-
-        if (data.leaderboard) {
-          setPlayers(data.leaderboard)
-        }
+        setPlayers(parseLeaderboardUsers(data).map(mapLeaderboardEntry))
       } catch (error) {
-        console.error('[v0] Failed to load players:', error)
+        console.error('Failed to load players:', error)
       } finally {
         setLoading(false)
       }
@@ -66,7 +65,7 @@ export default function PlayersPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {players.map((player) => (
                 <Card
-                  key={player.rank}
+                  key={player.username}
                   className="border border-border bg-card overflow-hidden transition hover:border-primary hover:bg-card/80"
                 >
                   <div className="space-y-4 p-4">
@@ -126,15 +125,15 @@ export default function PlayersPage() {
                     </div>
 
                     {/* View Profile Button */}
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      asChild
+                    <a
+                      href={`/player/${player.username}`}
+                      className={cn(
+                        buttonVariants({ variant: 'outline' }),
+                        'w-full',
+                      )}
                     >
-                      <a href={`/player/${player.username}`}>
-                        View Profile
-                      </a>
-                    </Button>
+                      View Profile
+                    </a>
 
                     {/* Twitch Button (if available) */}
                     {player.twitchChannel && (

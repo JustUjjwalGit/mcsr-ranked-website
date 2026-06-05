@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import {
+  mapLeaderboardEntry,
+  mapMatchToCard,
+  parseLeaderboardUsers,
+  parseMatchList,
+} from '@/lib/mcsr'
 
 interface TopPlayer {
   rank: number
@@ -33,34 +39,21 @@ export function Dashboard() {
         // Fetch leaderboard for top player
         const leaderboardRes = await fetch('/api/leaderboard')
         const leaderboardData = await leaderboardRes.json()
-        
-        if (leaderboardData.data?.users && leaderboardData.data.users[0]) {
-          const topUser = leaderboardData.data.users[0]
-          setTopPlayer({
-            rank: topUser.eloRank || 1,
-            username: topUser.nickname,
-            elo: topUser.eloRate || 0,
-            wins: 0,
-            losses: 0,
-          })
+        const users = parseLeaderboardUsers(leaderboardData)
+
+        if (users[0]) {
+          setTopPlayer(mapLeaderboardEntry(users[0]))
         }
 
-        // Fetch recent matches
         const matchesRes = await fetch('/api/matches?count=5')
         const matchesData = await matchesRes.json()
-        
-        if (matchesData.data) {
-          setRecentMatches(matchesData.data.map((match: any) => ({
-            id: match.id,
-            player1: match.players[0]?.nickname || 'Unknown',
-            player2: match.players[1]?.nickname || 'Unknown',
-            winner: match.result?.uuid || 'Draw',
-            timestamp: new Date(match.date * 1000).toISOString(),
-            duration: match.result?.time?.toString(),
-          })))
+        const matches = parseMatchList(matchesData)
+
+        if (matches.length > 0) {
+          setRecentMatches(matches.map((match) => mapMatchToCard(match)))
         }
       } catch (error) {
-        console.error('[v0] Failed to load dashboard:', error)
+        console.error('Failed to load dashboard:', error)
       } finally {
         setLoading(false)
       }
@@ -129,25 +122,6 @@ export function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Trend Chart (placeholder) */}
-                  <div className="space-y-2 border-t border-border pt-4">
-                    <p className="text-xs text-muted-foreground">Elo Trend</p>
-                    <div className="h-12 rounded bg-muted"></div>
-                  </div>
-
-                  {/* Streaming Status */}
-                  <div className="space-y-2 border-t border-border pt-4">
-                    <p className="text-xs text-muted-foreground">Streaming on</p>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full border-destructive text-destructive hover:bg-destructive/10"
-                      >
-                        ● Live Now
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               ) : null}
             </div>

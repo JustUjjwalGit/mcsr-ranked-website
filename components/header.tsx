@@ -90,15 +90,6 @@ export function Header() {
             Search
           </Button>
         </form>
-
-        {/* Twitch Button */}
-        <Button
-          variant="default"
-          className="gap-2 bg-primary text-primary-foreground hover:opacity-90"
-        >
-          <span>▶</span>
-          Connect Twitch
-        </Button>
       </div>
     </header>
   )

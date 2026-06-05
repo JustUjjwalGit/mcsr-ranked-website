@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,65 +15,47 @@ interface Event {
   prizePool?: string
 }
 
+const EVENTS: Event[] = [
+  {
+    id: '1',
+    name: 'Season 5 Championships',
+    date: '2024-12-15',
+    time: '19:00 UTC',
+    description: 'Grand championship event for Season 5',
+    status: 'upcoming',
+    participants: 64,
+    prizePool: '$10,000',
+  },
+  {
+    id: '2',
+    name: 'Weekly Speedrun Tournament',
+    date: '2024-12-08',
+    time: '18:00 UTC',
+    description: 'Weekly ranked tournament',
+    status: 'upcoming',
+    participants: 32,
+    prizePool: '$500',
+  },
+  {
+    id: '3',
+    name: 'All-Star Showmatch',
+    date: '2024-12-01',
+    time: '20:00 UTC',
+    description: 'Exhibition match between top players',
+    status: 'completed',
+    participants: 2,
+  },
+]
+
 export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    async function loadEvents() {
-      try {
-        // For now, using mock data as the API might not have events endpoint
-        const mockEvents: Event[] = [
-          {
-            id: '1',
-            name: 'Season 5 Championships',
-            date: '2024-12-15',
-            time: '19:00 UTC',
-            description: 'Grand championship event for Season 5',
-            status: 'upcoming',
-            participants: 64,
-            prizePool: '$10,000',
-          },
-          {
-            id: '2',
-            name: 'Weekly Speedrun Tournament',
-            date: '2024-12-08',
-            time: '18:00 UTC',
-            description: 'Weekly ranked tournament',
-            status: 'upcoming',
-            participants: 32,
-            prizePool: '$500',
-          },
-          {
-            id: '3',
-            name: 'All-Star Showmatch',
-            date: '2024-12-01',
-            time: '20:00 UTC',
-            description: 'Exhibition match between top players',
-            status: 'completed',
-            participants: 2,
-          },
-        ]
-        setEvents(mockEvents)
-      } catch (error) {
-        console.error('[v0] Failed to load events:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadEvents()
-  }, [])
-
-  const upcomingEvents = events.filter((e) => e.status === 'upcoming')
-  const completedEvents = events.filter((e) => e.status === 'completed')
+  const upcomingEvents = EVENTS.filter((e) => e.status === 'upcoming')
+  const completedEvents = EVENTS.filter((e) => e.status === 'completed')
 
   return (
     <>
       <Header />
       <main className="mx-auto max-w-7xl px-4 py-8">
         <div className="space-y-6">
-          {/* Header */}
           <div className="space-y-4">
             <h1 className="text-4xl font-bold text-foreground">Upcoming Events</h1>
             <p className="text-muted-foreground">
@@ -82,19 +63,9 @@ export default function EventsPage() {
             </p>
           </div>
 
-          {/* Upcoming Events */}
           <div>
             <h2 className="mb-4 text-2xl font-bold text-foreground">Upcoming</h2>
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-40 animate-pulse rounded border border-border bg-muted"
-                  ></div>
-                ))}
-              </div>
-            ) : upcomingEvents.length > 0 ? (
+            {upcomingEvents.length > 0 ? (
               <div className="space-y-4">
                 {upcomingEvents.map((event) => (
                   <Card
@@ -124,7 +95,7 @@ export default function EventsPage() {
                       )}
 
                       <div className="flex flex-wrap gap-4">
-                        {event.participants && (
+                        {event.participants != null && (
                           <div>
                             <p className="text-xs text-muted-foreground">
                               Participants
@@ -162,7 +133,6 @@ export default function EventsPage() {
             )}
           </div>
 
-          {/* Completed Events */}
           {completedEvents.length > 0 && (
             <div>
               <h2 className="mb-4 text-2xl font-bold text-foreground">
@@ -191,40 +161,6 @@ export default function EventsPage() {
                 ))}
               </div>
             </div>
-          )}
-
-          {/* Event Countdown */}
-          {upcomingEvents.length > 0 && (
-            <Card className="border border-border bg-card p-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-foreground">
-                  Countdown to Next Event
-                </h3>
-                <div className="text-center">
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    {upcomingEvents[0].name}
-                  </p>
-                  <div className="grid gap-4 grid-cols-4 justify-center">
-                    <div className="rounded bg-muted p-4">
-                      <p className="text-2xl font-bold text-foreground">00</p>
-                      <p className="text-xs text-muted-foreground">Days</p>
-                    </div>
-                    <div className="rounded bg-muted p-4">
-                      <p className="text-2xl font-bold text-foreground">19</p>
-                      <p className="text-xs text-muted-foreground">Hours</p>
-                    </div>
-                    <div className="rounded bg-muted p-4">
-                      <p className="text-2xl font-bold text-foreground">23</p>
-                      <p className="text-xs text-muted-foreground">Minutes</p>
-                    </div>
-                    <div className="rounded bg-muted p-4">
-                      <p className="text-2xl font-bold text-foreground">45</p>
-                      <p className="text-xs text-muted-foreground">Seconds</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
           )}
         </div>
       </main>

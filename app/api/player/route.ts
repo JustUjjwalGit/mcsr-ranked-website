@@ -24,7 +24,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const identifier = searchParams.get('identifier')
+  const identifier =
+    searchParams.get('identifier') ?? searchParams.get('username')
 
   if (!identifier) {
     return Response.json(

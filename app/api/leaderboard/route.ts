@@ -1,4 +1,5 @@
 import { fetchAPI } from '@/lib/api'
+import { resolveSeasonQuery } from '@/lib/mcsr'
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
 
 export async function GET(request: Request) {
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   
-  const season = searchParams.get('season')
+  const season = resolveSeasonQuery(searchParams.get('season'))
   const country = searchParams.get('country')
 
   try {

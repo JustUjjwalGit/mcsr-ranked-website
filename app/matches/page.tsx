@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { mapMatchToCard, parseMatchList } from '@/lib/mcsr'
 
 interface Match {
   id: string
@@ -18,27 +19,27 @@ interface Match {
 export default function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
-  const [offset, setOffset] = useState(0)
+  const [before, setBefore] = useState<string | null>(null)
+  const [cursorStack, setCursorStack] = useState<string[]>([])
 
   useEffect(() => {
     async function loadMatches() {
       try {
         setLoading(true)
-        const res = await fetch(`/api/matches?offset=${offset}&limit=50`)
+        const params = new URLSearchParams({ count: '50' })
+        if (before) params.set('before', before)
+        const res = await fetch(`/api/matches?${params}`)
         const data = await res.json()
-
-        if (data.matches) {
-          setMatches(data.matches)
-        }
+        setMatches(parseMatchList(data).map((match) => mapMatchToCard(match)))
       } catch (error) {
-        console.error('[v0] Failed to load matches:', error)
+        console.error('Failed to load matches:', error)
       } finally {
         setLoading(false)
       }
     }
 
     loadMatches()
-  }, [offset])
+  }, [before])
 
   return (
     <>
@@ -132,17 +133,26 @@ export default function MatchesPage() {
           <div className="flex items-center justify-between pt-4">
             <Button
               variant="outline"
-              onClick={() => setOffset(Math.max(0, offset - 50))}
-              disabled={offset === 0 || loading}
+              onClick={() => {
+                const previous = cursorStack[cursorStack.length - 1]
+                setCursorStack((stack) => stack.slice(0, -1))
+                setBefore(previous ?? null)
+              }}
+              disabled={cursorStack.length === 0 || loading}
             >
               ← Previous
             </Button>
             <span className="text-sm text-muted-foreground">
-              Showing {offset + 1}-{offset + matches.length}
+              {matches.length} matches
             </span>
             <Button
               variant="outline"
-              onClick={() => setOffset(offset + 50)}
+              onClick={() => {
+                const lastId = matches[matches.length - 1]?.id
+                if (!lastId) return
+                setCursorStack((stack) => [...stack, before ?? ''])
+                setBefore(lastId)
+              }}
               disabled={matches.length < 50 || loading}
             >
               Next →
