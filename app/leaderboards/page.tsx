@@ -97,7 +97,6 @@ export default function LeaderboardsPage() {
                   variant={season === 'current' ? 'default' : 'outline'}
                   onClick={() => {
                     setSeason('current')
-                    setOffset(0)
                   }}
                 >
                   Current Season
@@ -106,7 +105,6 @@ export default function LeaderboardsPage() {
                   variant={season === 'all' ? 'default' : 'outline'}
                   onClick={() => {
                     setSeason('all')
-                    setOffset(0)
                   }}
                 >
                   All Time
