@@ -10,7 +10,7 @@ export async function fetchAPI(
   
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(API_KEY && { 'X-API-Key': API_KEY }),
+    ...(API_KEY && { 'Private-Key': API_KEY }),
     ...options.headers,
   }
 
@@ -21,7 +21,9 @@ export async function fetchAPI(
     })
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`)
+      const errorText = await response.text()
+      console.error(`[v0] API Error ${response.status}:`, errorText)
+      throw new Error(`API Error: ${response.status} - ${errorText}`)
     }
 
     return await response.json()

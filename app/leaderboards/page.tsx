@@ -22,18 +22,25 @@ export default function LeaderboardsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filteredLeaderboard, setFilteredLeaderboard] = useState<LeaderboardEntry[]>([])
   const [season, setSeason] = useState('current')
-  const [offset, setOffset] = useState(0)
 
   useEffect(() => {
     async function loadLeaderboard() {
       try {
         setLoading(true)
-        const res = await fetch(`/api/leaderboard?season=${season}&offset=${offset}&limit=50`)
+        const res = await fetch(`/api/leaderboard?season=${season}`)
         const data = await res.json()
 
-        if (data.leaderboard) {
-          setLeaderboard(data.leaderboard)
-          setFilteredLeaderboard(data.leaderboard)
+        if (data.data?.users && Array.isArray(data.data.users)) {
+          const entries = data.data.users.map((entry: any) => ({
+            rank: entry.eloRank || 1,
+            username: entry.nickname,
+            elo: entry.eloRate || 0,
+            wins: 0,
+            losses: 0,
+            country: entry.country,
+          }))
+          setLeaderboard(entries)
+          setFilteredLeaderboard(entries)
         }
       } catch (error) {
         console.error('[v0] Failed to load leaderboard:', error)
@@ -43,7 +50,7 @@ export default function LeaderboardsPage() {
     }
 
     loadLeaderboard()
-  }, [season, offset])
+  }, [season])
 
   useEffect(() => {
     if (searchQuery.trim()) {
@@ -206,26 +213,6 @@ export default function LeaderboardsPage() {
             </div>
           </Card>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              onClick={() => setOffset(Math.max(0, offset - 50))}
-              disabled={offset === 0 || loading}
-            >
-              ← Previous
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              Showing {offset + 1}-{offset + filteredLeaderboard.length}
-            </span>
-            <Button
-              variant="outline"
-              onClick={() => setOffset(offset + 50)}
-              disabled={filteredLeaderboard.length < 50 || loading}
-            >
-              Next →
-            </Button>
-          </div>
         </div>
       </main>
     </>

@@ -24,17 +24,17 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const username = searchParams.get('username')
+  const identifier = searchParams.get('identifier')
 
-  if (!username) {
+  if (!identifier) {
     return Response.json(
-      { error: 'Username is required' },
+      { error: 'Identifier (username, UUID, or discord ID) is required' },
       { status: 400, headers }
     )
   }
 
   try {
-    const data = await fetchAPI(`/player/${encodeURIComponent(username)}`)
+    const data = await fetchAPI(`/users/${encodeURIComponent(identifier)}`)
     return Response.json(data, { headers })
   } catch (error) {
     return Response.json(

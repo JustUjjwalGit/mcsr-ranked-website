@@ -25,14 +25,22 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   
-  const offset = searchParams.get('offset') || '0'
-  const limit = searchParams.get('limit') || '20'
-  const player = searchParams.get('player')
+  const count = searchParams.get('count')
+  const after = searchParams.get('after')
+  const before = searchParams.get('before')
+  const sort = searchParams.get('sort')
 
   try {
-    let endpoint = `/matches?offset=${offset}&limit=${limit}`
-    if (player) {
-      endpoint += `&player=${encodeURIComponent(player)}`
+    let endpoint = '/matches'
+    const params = new URLSearchParams()
+    
+    if (count) params.append('count', count)
+    if (after) params.append('after', after)
+    if (before) params.append('before', before)
+    if (sort) params.append('sort', sort)
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`
     }
 
     const data = await fetchAPI(endpoint)

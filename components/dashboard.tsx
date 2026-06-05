@@ -31,19 +31,33 @@ export function Dashboard() {
     async function loadDashboard() {
       try {
         // Fetch leaderboard for top player
-        const leaderboardRes = await fetch('/api/leaderboard?limit=1')
+        const leaderboardRes = await fetch('/api/leaderboard')
         const leaderboardData = await leaderboardRes.json()
         
-        if (leaderboardData.leaderboard?.[0]) {
-          setTopPlayer(leaderboardData.leaderboard[0])
+        if (leaderboardData.data?.users && leaderboardData.data.users[0]) {
+          const topUser = leaderboardData.data.users[0]
+          setTopPlayer({
+            rank: topUser.eloRank || 1,
+            username: topUser.nickname,
+            elo: topUser.eloRate || 0,
+            wins: 0,
+            losses: 0,
+          })
         }
 
         // Fetch recent matches
-        const matchesRes = await fetch('/api/matches?limit=5')
+        const matchesRes = await fetch('/api/matches?count=5')
         const matchesData = await matchesRes.json()
         
-        if (matchesData.matches) {
-          setRecentMatches(matchesData.matches)
+        if (matchesData.data) {
+          setRecentMatches(matchesData.data.map((match: any) => ({
+            id: match.id,
+            player1: match.players[0]?.nickname || 'Unknown',
+            player2: match.players[1]?.nickname || 'Unknown',
+            winner: match.result?.uuid || 'Draw',
+            timestamp: new Date(match.date * 1000).toISOString(),
+            duration: match.result?.time?.toString(),
+          })))
         }
       } catch (error) {
         console.error('[v0] Failed to load dashboard:', error)

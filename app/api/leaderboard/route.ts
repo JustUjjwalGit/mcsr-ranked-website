@@ -25,14 +25,21 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   
-  const season = searchParams.get('season') || 'current'
-  const offset = searchParams.get('offset') || '0'
-  const limit = searchParams.get('limit') || '50'
+  const season = searchParams.get('season')
+  const country = searchParams.get('country')
 
   try {
-    const data = await fetchAPI(
-      `/leaderboard?season=${season}&offset=${offset}&limit=${limit}`
-    )
+    let endpoint = '/leaderboard'
+    const params = new URLSearchParams()
+    
+    if (season) params.append('season', season)
+    if (country) params.append('country', country)
+    
+    if (params.toString()) {
+      endpoint += `?${params.toString()}`
+    }
+
+    const data = await fetchAPI(endpoint)
     
     return Response.json(data, { headers })
   } catch (error) {
