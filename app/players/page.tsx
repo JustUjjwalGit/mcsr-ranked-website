@@ -5,9 +5,11 @@ import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { UserAvatar } from '@/components/user-avatar'
 import { mapLeaderboardEntry, parseLeaderboardUsers } from '@/lib/mcsr'
 
 interface PlayerCard {
+  uuid: string
   username: string
   elo: number
   rank: number
@@ -88,8 +90,13 @@ export default function PlayersPage() {
                     </div>
 
                     {/* Avatar */}
-                    <div className="flex h-20 w-20 items-center justify-center rounded-lg border-2 border-primary bg-muted text-3xl">
-                      👤
+                    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border-2 border-primary/50 bg-black/30">
+                      <UserAvatar
+                        uuid={player.uuid}
+                        username={player.username}
+                        size={80}
+                        className="h-full w-full rounded-lg"
+                      />
                     </div>
 
                     {/* Player Info */}
@@ -106,8 +113,8 @@ export default function PlayersPage() {
                     <div className="space-y-2 border-t border-border pt-3">
                       <div className="flex justify-between">
                         <span className="text-xs text-muted-foreground">Elo</span>
-                        <span className="font-semibold text-primary">
-                          {player.elo}
+                        <span className="tabular-figures font-mono font-semibold text-primary">
+                          {player.elo.toLocaleString()}
                         </span>
                       </div>
                       <div className="flex justify-between">

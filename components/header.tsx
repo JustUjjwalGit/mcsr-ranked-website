@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SiteLogo } from '@/components/site-logo'
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -17,19 +18,11 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-primary/30 bg-background/95 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-primary/30 bg-black/50 backdrop-blur-md">
       <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 font-bold text-xl group">
-          {/* Minecraft-style Logo */}
-          <div className="relative flex h-12 w-12 items-center justify-center">
-            {/* Outer circular border with glow */}
-            <div className="absolute inset-0 rounded-full border-2 border-primary glow-primary"></div>
-            {/* Minecraft pickaxe icon */}
-            <div className="flex h-8 w-8 items-center justify-center text-lg">
-              ⛏️
-            </div>
-          </div>
+          <SiteLogo size={48} priority className="drop-shadow-[0_0_12px_rgba(234,179,8,0.35)]" />
           {/* Text branding */}
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-bold tracking-wider text-muted-foreground">MCSR</span>

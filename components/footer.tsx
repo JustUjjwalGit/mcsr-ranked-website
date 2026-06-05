@@ -1,14 +1,14 @@
+import { SiteLogo } from '@/components/site-logo'
+
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card">
+    <footer className="border-t border-border bg-black/40 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 font-bold text-lg">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-primary text-primary-foreground">
-                ⛏️
-              </div>
+              <SiteLogo size={32} />
               <span className="text-foreground">MCSR RANKED</span>
             </div>
             <p className="text-sm text-muted-foreground">

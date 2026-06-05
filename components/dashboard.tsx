@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { UserAvatar } from '@/components/user-avatar'
+import { MatchActions } from '@/components/match-actions'
 import {
   mapLeaderboardEntry,
   mapMatchToCard,
@@ -11,6 +13,7 @@ import {
 } from '@/lib/mcsr'
 
 interface TopPlayer {
+  uuid: string
   rank: number
   username: string
   elo: number
@@ -26,6 +29,8 @@ interface Match {
   winner: string
   timestamp: string
   duration?: string
+  vodUrl?: string
+  replayPlayer: string
 }
 
 export function Dashboard() {
@@ -67,7 +72,7 @@ export function Dashboard() {
       {/* Top Player Section */}
       <div className="grid gap-8 md:grid-cols-3">
         <div className="md:col-span-1">
-          <div className="border border-primary/40 bg-card p-6 rounded-lg glow-primary">
+          <div className="border border-primary/40 bg-card/80 backdrop-blur-sm p-6 rounded-lg">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase text-muted-foreground">
                 Top 1 Ranked Player
@@ -80,8 +85,13 @@ export function Dashboard() {
               ) : topPlayer ? (
                 <div className="space-y-4">
                   <div className="flex flex-col items-center gap-4">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-primary bg-muted text-2xl">
-                      👤
+                    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border-2 border-primary/50 bg-black/30">
+                      <UserAvatar
+                        uuid={topPlayer.uuid}
+                        username={topPlayer.username}
+                        size={80}
+                        className="h-full w-full rounded-lg"
+                      />
                     </div>
                     <div className="text-center">
                       <p className="font-bold text-lg text-foreground">
@@ -97,8 +107,8 @@ export function Dashboard() {
                   <div className="space-y-2 border-t border-border pt-4">
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Elo</span>
-                      <span className="font-semibold text-foreground">
-                        {topPlayer.elo}
+                      <span className="tabular-figures font-mono font-semibold text-foreground">
+                        {topPlayer.elo.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -130,7 +140,7 @@ export function Dashboard() {
 
         {/* Leaderboard Preview */}
         <div className="md:col-span-2">
-          <div className="border border-primary/40 bg-card p-6 rounded-lg glow-primary">
+          <div className="border border-primary/40 bg-card/80 backdrop-blur-sm p-6 rounded-lg">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase text-muted-foreground">
                 Global Leaderboard
@@ -167,8 +177,10 @@ export function Dashboard() {
                         <td className="py-3 text-foreground">
                           {topPlayer?.username || 'Loading...'}
                         </td>
-                        <td className="py-3 text-right font-semibold text-primary">
-                          {topPlayer?.elo || '-'}
+                        <td className="py-3 text-right">
+                          <span className="tabular-figures font-mono font-semibold text-primary">
+                            {topPlayer?.elo.toLocaleString() ?? '—'}
+                          </span>
                         </td>
                         <td className="py-3 text-right text-muted-foreground">
                           {topPlayer ? `${topPlayer.wins}-${topPlayer.losses}` : '-'}
@@ -191,7 +203,7 @@ export function Dashboard() {
 
       {/* Recent Matches */}
       <div>
-        <div className="border border-primary/40 bg-card p-6 rounded-lg glow-primary">
+        <div className="border border-primary/40 bg-card/80 backdrop-blur-sm p-6 rounded-lg">
           <div className="space-y-4">
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
               Recent Matches
@@ -239,9 +251,11 @@ export function Dashboard() {
                         </span>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline">
-                      View Replay
-                    </Button>
+                    <MatchActions
+                      matchId={match.id}
+                      playerNickname={match.replayPlayer}
+                      vodUrl={match.vodUrl}
+                    />
                   </div>
                 ))
               ) : (

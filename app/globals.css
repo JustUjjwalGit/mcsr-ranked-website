@@ -125,32 +125,29 @@
     @apply font-sans;
   }
   body {
-    @apply bg-background text-foreground relative;
-    position: relative;
+    @apply text-foreground relative min-h-screen;
+    background-color: oklch(0.06 0 0);
   }
-  /* Neon bottom glow effect */
   body::before {
     content: '';
     position: fixed;
-    bottom: -100px;
-    left: -10%;
-    width: 120%;
-    height: 300px;
-    background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.15) 30%, rgba(139, 92, 246, 0) 70%);
-    pointer-events: none;
-    z-index: -1;
+    inset: -8px;
+    z-index: -2;
+    background-image: url('/Image_bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    filter: blur(3px);
+    transform: scale(1.02);
   }
-  /* Additional purple accent glow */
   body::after {
     content: '';
     position: fixed;
-    bottom: -80px;
-    right: -5%;
-    width: 600px;
-    height: 400px;
-    background: radial-gradient(ellipse at center, rgba(168, 85, 247, 0.25) 0%, rgba(168, 85, 247, 0.1) 40%, rgba(168, 85, 247, 0) 70%);
-    pointer-events: none;
+    inset: 0;
     z-index: -1;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.52);
   }
 }
 
@@ -163,23 +160,16 @@
   box-shadow: 0 0 30px rgba(139, 92, 246, 0.6), 0 0 60px rgba(139, 92, 246, 0.3);
 }
 
-/* Minecraft-themed blocks decoration */
-.minecraft-blocks {
-  background: 
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(139, 92, 246, 0.1) 2px,
-      rgba(139, 92, 246, 0.1) 4px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      rgba(139, 92, 246, 0.1) 2px,
-      rgba(139, 92, 246, 0.1) 4px
-    );
+/* Even-width numbers for tables and stats */
+.tabular-figures {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Crisp Minecraft skin faces */
+.image-rendering-pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 /* Smooth transitions */

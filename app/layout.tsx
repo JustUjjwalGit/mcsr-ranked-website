@@ -13,7 +13,8 @@ export const metadata: Metadata = {
   title: 'MCSR Ranked - Minecraft Speedrunning Leaderboards',
   description: 'Track top Minecraft speedrunners, view global leaderboards, match history, and competitive rankings',
   icons: {
-    icon: '/icon.svg',
+    icon: '/Gold_Icon.png',
+    apple: '/Gold_Icon.png',
   },
 }
 
@@ -23,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark bg-background`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark`}>
       <body className="font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}

@@ -1,5 +1,7 @@
 /** Helpers for MCSR Ranked API response shapes (docs.mcsrranked.com). */
 
+import { fetchAPIWithCache } from '@/lib/api'
+
 export interface McsrUser {
   uuid: string
   nickname: string
@@ -13,14 +15,39 @@ export interface McsrUser {
   }
 }
 
+export interface McsrMatchVod {
+  uuid: string
+  url: string
+  startsAt: number
+}
+
 export interface McsrMatch {
   id: number
+  type?: number
+  season?: number
   date: number
   players: McsrUser[]
+  vod?: McsrMatchVod[]
   result?: {
     uuid?: string
     time?: number
   } | null
+  changes?: {
+    uuid: string
+    change: number | null
+    eloRate: number | null
+  }[]
+  decayed?: boolean
+}
+
+interface McsrStatBucket {
+  ranked: number
+  casual: number
+}
+
+interface McsrStatistics {
+  season: Record<string, McsrStatBucket>
+  total: Record<string, McsrStatBucket>
 }
 
 type ApiEnvelope<T> = {
@@ -101,15 +128,73 @@ export function formatMatchTime(ms?: number): string | undefined {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-export function mapLeaderboardEntry(user: McsrUser) {
+export type StatsScope = 'season' | 'total'
+
+export function extractRecordStats(
+  body: unknown,
+  scope: StatsScope = 'season',
+) {
+  const data = (body as ApiEnvelope<{ statistics?: McsrStatistics }>).data
+  const bucket = data?.statistics?.[scope]
   return {
+    wins: bucket?.wins?.ranked ?? 0,
+    losses: bucket?.loses?.ranked ?? 0,
+    currentStreak: bucket?.currentWinStreak?.ranked,
+    bestStreak: bucket?.highestWinStreak?.ranked,
+  }
+}
+
+export function mapLeaderboardEntry(
+  user: McsrUser & { wins?: number; losses?: number },
+) {
+  return {
+    uuid: user.uuid,
     rank: user.eloRank ?? 0,
     username: user.nickname,
     elo: user.eloRate ?? 0,
-    wins: 0,
-    losses: 0,
+    wins: user.wins ?? 0,
+    losses: user.losses ?? 0,
     country: user.country ?? undefined,
   }
+}
+
+export function mapUserToProfile(body: unknown) {
+  const user = parseUserProfile(body)
+  if (!user) return null
+  const stats = extractRecordStats(body, 'season')
+  return {
+    ...mapLeaderboardEntry({ ...user, wins: stats.wins, losses: stats.losses }),
+    statistics: {
+      currentStreak: stats.currentStreak,
+      bestStreak: stats.bestStreak,
+    },
+  }
+}
+
+export function getMatchStatsUrl(nickname: string, matchId: number | string) {
+  return `https://mcsrranked.com/stats/${encodeURIComponent(nickname)}/${matchId}`
+}
+
+export async function enrichLeaderboardUsersWithStats<
+  T extends McsrUser,
+>(users: T[], limit = 30): Promise<(T & { wins: number; losses: number })[]> {
+  const enriched = await Promise.all(
+    users.map(async (user, index) => {
+      if (index >= limit) {
+        return { ...user, wins: 0, losses: 0 }
+      }
+      try {
+        const details = await fetchAPIWithCache(
+          `/users/${encodeURIComponent(user.nickname)}`,
+        )
+        const { wins, losses } = extractRecordStats(details, 'season')
+        return { ...user, wins, losses }
+      } catch {
+        return { ...user, wins: 0, losses: 0 }
+      }
+    }),
+  )
+  return enriched
 }
 
 export function mapMatchToCard(match: McsrMatch, perspectiveNickname?: string) {
@@ -136,6 +221,10 @@ export function mapMatchToCard(match: McsrMatch, perspectiveNickname?: string) {
     result = self?.uuid && winnerUuid === self.uuid ? 'win' : 'loss'
   }
 
+  const replayPlayer =
+    perspectiveNickname || player1?.nickname || player2?.nickname || 'Unknown'
+  const vodUrl = match.vod?.[0]?.url
+
   return {
     id: String(match.id),
     player1: player1?.nickname ?? 'Unknown',
@@ -145,5 +234,8 @@ export function mapMatchToCard(match: McsrMatch, perspectiveNickname?: string) {
     result,
     timestamp: new Date(match.date * 1000).toISOString(),
     duration: formatMatchTime(match.result?.time),
+    vodUrl,
+    statsUrl: getMatchStatsUrl(replayPlayer, match.id),
+    replayPlayer,
   }
 }

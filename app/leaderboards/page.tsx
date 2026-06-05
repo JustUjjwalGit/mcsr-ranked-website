@@ -6,8 +6,10 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Search } from 'lucide-react'
 import { mapLeaderboardEntry, parseLeaderboardUsers } from '@/lib/mcsr'
+import { UserAvatar } from '@/components/user-avatar'
 
 interface LeaderboardEntry {
+  uuid: string
   rank: number
   username: string
   elo: number
@@ -125,10 +127,10 @@ export default function LeaderboardsPage() {
                       Country
                     </th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-muted-foreground">
-                      Elo
+                      <span className="tabular-figures">Elo</span>
                     </th>
                     <th className="px-6 py-4 text-right text-sm font-semibold text-muted-foreground">
-                      W/L
+                      <span className="tabular-figures">W/L</span>
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-muted-foreground">
                       Recent Form
@@ -167,21 +169,31 @@ export default function LeaderboardsPage() {
                         <td className="px-6 py-4">
                           <a
                             href={`/player/${entry.username}`}
-                            className="font-semibold text-primary hover:underline"
+                            className="flex items-center gap-3 font-semibold text-primary hover:underline"
                           >
-                            {entry.username}
+                            <UserAvatar
+                              uuid={entry.uuid}
+                              username={entry.username}
+                              size={36}
+                              className="h-9 w-9 shrink-0 rounded-md border border-border"
+                            />
+                            <span>{entry.username}</span>
                           </a>
                         </td>
-                        <td className="px-6 py-4 text-right text-muted-foreground">
-                          {entry.country || '-'}
+                        <td className="px-6 py-4 text-right text-muted-foreground uppercase">
+                          {entry.country || '—'}
                         </td>
-                        <td className="px-6 py-4 text-right font-semibold text-foreground">
-                          {entry.elo}
+                        <td className="px-6 py-4 text-right">
+                          <span className="tabular-figures inline-block min-w-[5ch] font-mono text-sm font-semibold tracking-normal text-foreground">
+                            {entry.elo.toLocaleString()}
+                          </span>
                         </td>
-                        <td className="px-6 py-4 text-right text-muted-foreground">
-                          <span className="text-green-500">{entry.wins}</span>
-                          <span className="mx-1">-</span>
-                          <span className="text-red-500">{entry.losses}</span>
+                        <td className="px-6 py-4 text-right">
+                          <span className="tabular-figures inline-block min-w-[6ch] font-mono text-sm tracking-normal text-muted-foreground">
+                            <span className="text-green-500">{entry.wins}</span>
+                            <span className="mx-1 text-muted-foreground">-</span>
+                            <span className="text-red-500">{entry.losses}</span>
+                          </span>
                         </td>
                         <td className="px-6 py-4 text-center">
                           <div className="flex justify-center gap-1">

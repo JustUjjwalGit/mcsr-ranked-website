@@ -5,9 +5,12 @@ import { useParams } from 'next/navigation'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { mapLeaderboardEntry, mapMatchToCard, parseMatchList, parseUserProfile } from '@/lib/mcsr'
+import { mapMatchToCard, mapUserToProfile, parseMatchList } from '@/lib/mcsr'
+import { MatchActions } from '@/components/match-actions'
+import { UserAvatar } from '@/components/user-avatar'
 
 interface PlayerProfile {
+  uuid: string
   username: string
   elo: number
   rank: number
@@ -31,6 +34,8 @@ interface Match {
   result: 'win' | 'loss'
   timestamp: string
   duration?: string
+  vodUrl?: string
+  replayPlayer: string
 }
 
 export default function PlayerPage() {
@@ -52,12 +57,11 @@ export default function PlayerPage() {
 
         const playerData = await playerRes.json()
         const matchesData = await matchesRes.json()
-        const profile = parseUserProfile(playerData)
+        const profile = mapUserToProfile(playerData)
 
         if (profile) {
-          const mapped = mapLeaderboardEntry(profile)
           setPlayer({
-            ...mapped,
+            ...profile,
             joinDate: undefined,
             lastActive: undefined,
           })
@@ -99,8 +103,13 @@ export default function PlayerPage() {
               <div className="grid gap-8 md:grid-cols-3">
                 {/* Avatar and Basic Info */}
                 <div className="space-y-4">
-                  <div className="flex h-32 w-32 items-center justify-center rounded-lg border-2 border-primary bg-muted text-5xl">
-                    👤
+                  <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-lg border-2 border-primary/50 bg-black/30">
+                    <UserAvatar
+                      uuid={player.uuid}
+                      username={player.username}
+                      size={128}
+                      className="h-full w-full rounded-lg"
+                    />
                   </div>
                   <div>
                     <h1 className="text-3xl font-bold text-foreground">
@@ -120,7 +129,9 @@ export default function PlayerPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="rounded border border-border bg-muted/50 p-4">
                       <p className="text-sm text-muted-foreground mb-1">Elo Rating</p>
-                      <p className="text-3xl font-bold text-primary">{player.elo}</p>
+                      <p className="tabular-figures font-mono text-3xl font-bold text-primary">
+                        {player.elo.toLocaleString()}
+                      </p>
                     </div>
                     <div className="rounded border border-border bg-muted/50 p-4">
                       <p className="text-sm text-muted-foreground mb-1">Win Rate</p>
@@ -198,9 +209,11 @@ export default function PlayerPage() {
                             </p>
                           </div>
                         </div>
-                        <Button size="sm" variant="outline">
-                          View Replay
-                        </Button>
+                        <MatchActions
+                          matchId={match.id}
+                          playerNickname={match.replayPlayer}
+                          vodUrl={match.vodUrl}
+                        />
                       </div>
                     ))
                   ) : (

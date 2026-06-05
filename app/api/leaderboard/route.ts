@@ -1,5 +1,9 @@
 import { fetchAPI } from '@/lib/api'
-import { resolveSeasonQuery } from '@/lib/mcsr'
+import {
+  enrichLeaderboardUsersWithStats,
+  parseLeaderboardUsers,
+  resolveSeasonQuery,
+} from '@/lib/mcsr'
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
 
 export async function GET(request: Request) {
@@ -41,7 +45,13 @@ export async function GET(request: Request) {
     }
 
     const data = await fetchAPI(endpoint)
-    
+
+    const users = parseLeaderboardUsers(data)
+    if (users.length > 0 && data?.data && typeof data.data === 'object') {
+      const enriched = await enrichLeaderboardUsersWithStats(users, 30)
+      ;(data.data as { users: typeof enriched }).users = enriched
+    }
+
     return Response.json(data, { headers })
   } catch (error) {
     return Response.json(

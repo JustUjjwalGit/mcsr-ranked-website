@@ -5,6 +5,7 @@ import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { mapMatchToCard, parseMatchList } from '@/lib/mcsr'
+import { MatchActions } from '@/components/match-actions'
 
 interface Match {
   id: string
@@ -13,7 +14,8 @@ interface Match {
   winner: string
   timestamp: string
   duration?: string
-  replayUrl?: string
+  vodUrl?: string
+  replayPlayer: string
 }
 
 export default function MatchesPage() {
@@ -112,13 +114,12 @@ export default function MatchesPage() {
                     </div>
 
                     {/* Action Button */}
-                    <Button
-                      size="sm"
-                      variant="outline"
+                    <MatchActions
+                      matchId={match.id}
+                      playerNickname={match.replayPlayer}
+                      vodUrl={match.vodUrl}
                       className="w-full md:w-auto"
-                    >
-                      View Replay
-                    </Button>
+                    />
                   </div>
                 </Card>
               ))
