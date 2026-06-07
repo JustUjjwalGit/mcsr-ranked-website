@@ -50,42 +50,6 @@ function buildEloMovers(matches: McsrMatch[], direction: 'up' | 'down') {
     .slice(0, 5)
 }
 
-function buildEloDistribution(eloValues: number[]) {
-  const buckets = Array.from({ length: 19 }, (_, index) => {
-    const min = 100 + index * 100
-    return {
-      label: String(min),
-      min,
-      max: min + 99,
-    }
-  }).concat({
-    label: '2000+',
-    min: 2000,
-    max: Number.POSITIVE_INFINITY,
-  })
-
-  return buckets.map((bucket) => ({
-    label: bucket.label,
-    players: eloValues.filter((elo) => {
-      const normalizedElo = Math.max(elo, 100)
-      return normalizedElo >= bucket.min && normalizedElo <= bucket.max
-    }).length,
-  }))
-}
-
-function getRecentMatchPlayerElos(matches: McsrMatch[]) {
-  const players = new Map<string, number>()
-
-  for (const match of matches) {
-    for (const player of match.players) {
-      if (!player.uuid || player.eloRate == null) continue
-      players.set(player.uuid, player.eloRate)
-    }
-  }
-
-  return [...players.values()]
-}
-
 export async function GET(request: Request) {
   const ip =
     request.headers.get('x-forwarded-for') ||
@@ -145,12 +109,10 @@ export async function GET(request: Request) {
     const eloValues = users
       .map((u) => u.eloRate)
       .filter((elo): elo is number => elo != null)
-    const recentMatchEloValues = getRecentMatchPlayerElos(matches)
     const averageElo =
-      recentMatchEloValues.length > 0
+      eloValues.length > 0
         ? Math.round(
-            recentMatchEloValues.reduce((sum, elo) => sum + elo, 0) /
-              recentMatchEloValues.length,
+            eloValues.reduce((sum, elo) => sum + elo, 0) / eloValues.length,
           )
         : 0
 
@@ -159,9 +121,27 @@ export async function GET(request: Request) {
       if (!user.country) continue
       countryCounts.set(user.country, (countryCounts.get(user.country) ?? 0) + 1)
     }
+    const sortedCountries = [...countryCounts.entries()].sort((a, b) => b[1] - a[1])
+    const topCountryTotal = sortedCountries
+      .slice(0, 8)
+      .reduce((sum, [, players]) => sum + players, 0)
+    const otherCountryTotal = Math.max(users.length - topCountryTotal, 0)
+    const topCountries = sortedCountries
+      .slice(0, 8)
+      .map(([country, players]) => ({
+        country: country.toUpperCase(),
+        players,
+      }))
+
+    if (otherCountryTotal > 0) {
+      topCountries.push({
+        country: 'OTHER',
+        players: otherCountryTotal,
+      })
+    }
+
     const topCountry =
-      [...countryCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0]?.toUpperCase() ??
-      'N/A'
+      sortedCountries[0]?.[0]?.toUpperCase() ?? 'N/A'
     const topPlayer = users[0]
       ? {
           uuid: users[0].uuid,
@@ -190,8 +170,7 @@ export async function GET(request: Request) {
           topPlayer,
           recentActivity: recentMatches.length,
           liveMatches: liveData?.liveMatches?.length ?? 0,
-          eloDistribution: buildEloDistribution(recentMatchEloValues),
-          eloDistributionPlayers: recentMatchEloValues.length,
+          topCountries,
           topGainers: buildEloMovers(recentMatches, 'up'),
           topLosers: buildEloMovers(recentMatches, 'down'),
           seasonInfo,

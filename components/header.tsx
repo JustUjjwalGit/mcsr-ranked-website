@@ -57,10 +57,16 @@ export function Header() {
             Stats
           </Link>
           <Link
-            href="/events"
+            href="/seed-finder"
             className="text-sm text-muted-foreground transition hover:text-foreground"
           >
-            Events
+            Seeds
+          </Link>
+          <Link
+            href="/versus"
+            className="text-sm text-muted-foreground transition hover:text-foreground"
+          >
+            Versus
           </Link>
         </nav>
 
