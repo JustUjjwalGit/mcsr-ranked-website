@@ -15,4 +15,31 @@ export function getPlayerAvatarUrl(
   return PLACEHOLDER
 }
 
+export function getPlayerBodyUrl(
+  uuid?: string | null,
+  username?: string | null,
+  size = 256,
+): string {
+  if (uuid) {
+    return `https://mc-heads.net/player/${uuid}/${size}`
+  }
+  if (username) {
+    return `https://mc-heads.net/player/${encodeURIComponent(username)}/${size}`
+  }
+  return PLACEHOLDER
+}
+
+export function getPlayerSkinUrl(
+  uuid?: string | null,
+  username?: string | null,
+): string | null {
+  if (uuid) {
+    return `https://mc-heads.net/skin/${uuid}`
+  }
+  if (username) {
+    return `https://mc-heads.net/skin/${encodeURIComponent(username)}`
+  }
+  return null
+}
+
 export const placeholderUserPath = PLACEHOLDER

@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { Star } from 'lucide-react'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { mapMatchToCard, mapUserToProfile, parseMatchList } from '@/lib/mcsr'
 import { MatchActions } from '@/components/match-actions'
 import { UserAvatar } from '@/components/user-avatar'
+import { UserSkinViewer } from '@/components/user-skin-viewer'
+import { isFavoritePlayer, toggleFavoritePlayer } from '@/lib/player-memory'
 
 interface PlayerProfile {
   uuid: string
@@ -45,6 +48,7 @@ export default function PlayerPage() {
   const [player, setPlayer] = useState<PlayerProfile | null>(null)
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
+  const [favorite, setFavorite] = useState(false)
 
   useEffect(() => {
     async function loadPlayer() {
@@ -60,11 +64,13 @@ export default function PlayerPage() {
         const profile = mapUserToProfile(playerData)
 
         if (profile) {
-          setPlayer({
+          const nextPlayer = {
             ...profile,
             joinDate: undefined,
             lastActive: undefined,
-          })
+          }
+          setPlayer(nextPlayer)
+          setFavorite(isFavoritePlayer(nextPlayer.username))
         }
 
         setMatches(
@@ -81,6 +87,23 @@ export default function PlayerPage() {
 
     loadPlayer()
   }, [username])
+
+  function handleFavoriteToggle() {
+    if (!player) return
+
+    const favorites = toggleFavoritePlayer({
+      username: player.username,
+      uuid: player.uuid,
+      elo: player.elo,
+      rank: player.rank,
+    })
+
+    setFavorite(
+      favorites.some(
+        (item) => item.username.toLowerCase() === player.username.toLowerCase(),
+      ),
+    )
+  }
 
   const winRate =
     player && player.wins + player.losses > 0
@@ -100,32 +123,55 @@ export default function PlayerPage() {
           <div className="space-y-6">
             {/* Player Header */}
             <Card className="border border-border bg-card p-8">
-              <div className="grid gap-8 md:grid-cols-3">
-                {/* Avatar and Basic Info */}
-                <div className="space-y-4">
-                  <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-lg border-2 border-primary/50 bg-black/30">
-                    <UserAvatar
+              <div className="grid gap-8 lg:grid-cols-[minmax(240px,300px)_1fr]">
+                <div className="flex justify-center lg:justify-start">
+                  <div className="relative flex h-105 w-full max-w-75 items-end justify-center overflow-hidden rounded-lg border border-primary/40 bg-gradient-to-b from-primary/10 via-muted/20 to-background/80 p-4">
+                    <UserSkinViewer
                       uuid={player.uuid}
                       username={player.username}
-                      size={128}
-                      className="h-full w-full rounded-lg"
+                      priority
+                      fallbackClassName="h-full w-full drop-shadow-[0_14px_24px_rgba(0,0,0,0.55)]"
                     />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold text-foreground">
-                      {player.username}
-                    </h1>
-                    <p className="text-lg text-primary font-semibold">
-                      Rank #{player.rank}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {player.country || 'Unknown Country'}
-                    </p>
                   </div>
                 </div>
 
-                {/* Stats Grid */}
-                <div className="space-y-4 md:col-span-2">
+                <div className="space-y-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 border-primary/50 bg-black/30">
+                        <UserAvatar
+                          uuid={player.uuid}
+                          username={player.username}
+                          size={80}
+                          className="h-full w-full rounded-lg"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <h1 className="break-words text-3xl font-bold text-foreground">
+                          {player.username}
+                        </h1>
+                        <p className="text-lg font-semibold text-primary">
+                          Rank #{player.rank}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {player.country || 'Unknown Country'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant={favorite ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={handleFavoriteToggle}
+                      className="w-full sm:w-auto"
+                    >
+                      <Star
+                        className={`h-4 w-4 ${favorite ? 'fill-current' : ''}`}
+                      />
+                      {favorite ? 'Favorited' : 'Favorite'}
+                    </Button>
+                  </div>
+
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="rounded border border-border bg-muted/50 p-4">
                       <p className="text-sm text-muted-foreground mb-1">Elo Rating</p>

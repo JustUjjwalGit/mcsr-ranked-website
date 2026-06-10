@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteLogo } from '@/components/site-logo'
+import { saveRecentSearch } from '@/lib/player-memory'
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -12,8 +13,9 @@ export function Header() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      // Navigate to player page
-      window.location.href = `/player/${encodeURIComponent(searchQuery)}`
+      const username = searchQuery.trim()
+      saveRecentSearch(username)
+      window.location.href = `/player/${encodeURIComponent(username)}`
     }
   }
 
