@@ -83,7 +83,7 @@ export function HomePersonalHub() {
   const twitchEmbedUrl = useMemo(() => {
     if (!featuredVod || typeof window === 'undefined') return ''
     const parent = window.location.hostname
-    return `https://player.twitch.tv/?video=${featuredVod.id}&parent=${parent}&muted=true`
+    return `https://player.twitch.tv/?video=${featuredVod.id}&parent=${parent}&muted=true&autoplay=true`
   }, [featuredVod])
 
   function handleClearRecentSearches() {
@@ -218,6 +218,7 @@ export function HomePersonalHub() {
           <iframe
             src={twitchEmbedUrl}
             title="Daily Featured Match Twitch VOD"
+            allow="autoplay; fullscreen; picture-in-picture"
             allowFullScreen
             className="aspect-video w-full rounded border border-border bg-black"
           />

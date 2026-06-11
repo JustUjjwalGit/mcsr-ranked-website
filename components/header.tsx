@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteLogo } from '@/components/site-logo'
+import { ThemeSwitcher } from '@/components/theme-switcher'
 import { saveRecentSearch } from '@/lib/player-memory'
 
 export function Header() {
@@ -72,12 +73,8 @@ export function Header() {
           </Link>
         </nav>
 
-        {/* Search Bar */}
-        <form
-          onSubmit={handleSearch}
-          className="hidden items-center gap-2 md:flex"
-        >
-          <div className="relative">
+        <form onSubmit={handleSearch} className="flex items-center gap-2">
+          <div className="relative hidden md:block">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -87,9 +84,10 @@ export function Header() {
               className="rounded border border-border bg-input pl-8 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
-          <Button size="sm" variant="default">
+          <Button size="sm" variant="default" className="hidden md:inline-flex">
             Search
           </Button>
+          <ThemeSwitcher />
         </form>
       </div>
     </header>

@@ -81,6 +81,14 @@
   --sidebar-accent-foreground: oklch(0.95 0 0);
   --sidebar-border: oklch(0.25 0 0);
   --sidebar-ring: oklch(0.72 0.25 142);
+  --app-background-image: url('/Image_bg.png');
+  --app-background-size: cover;
+  --app-background-repeat: no-repeat;
+  --app-background-overlay:
+    linear-gradient(rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.72)),
+    rgba(0, 0, 0, 0.68);
+  --app-background-filter: blur(4px) brightness(0.78);
+  --app-background-scale: 1.02;
 }
 
 .dark {
@@ -126,20 +134,20 @@
   }
   body {
     @apply text-foreground relative min-h-screen;
-    background-color: oklch(0.06 0 0);
+    background-color: var(--background);
   }
   body::before {
     content: '';
     position: fixed;
     inset: -8px;
     z-index: -2;
-    background-image: url('/Image_bg.png');
-    background-size: cover;
+    background-image: var(--app-background-image);
+    background-size: var(--app-background-size);
     background-position: center;
-    background-repeat: no-repeat;
+    background-repeat: var(--app-background-repeat);
     background-attachment: fixed;
-    filter: blur(4px) brightness(0.78);
-    transform: scale(1.02);
+    filter: var(--app-background-filter);
+    transform: scale(var(--app-background-scale));
   }
   body::after {
     content: '';
@@ -147,9 +155,7 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background:
-      linear-gradient(rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.72)),
-      rgba(0, 0, 0, 0.68);
+    background: var(--app-background-overlay);
   }
 }
 

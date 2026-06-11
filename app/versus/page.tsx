@@ -271,8 +271,27 @@ export default function VersusPage() {
   const [showTutorial, setShowTutorial] = useState(false)
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const initialPlayer1 = params.get('player1')?.trim() ?? ''
+    const initialPlayer2 = params.get('player2')?.trim() ?? ''
+    const hasPrefilledPlayer = Boolean(initialPlayer1 || initialPlayer2)
     const seenTutorial = window.localStorage.getItem('versus-tutorial-seen')
-    setShowTutorial(!seenTutorial)
+
+    if (initialPlayer1) setPlayer1(initialPlayer1)
+    if (initialPlayer2) setPlayer2(initialPlayer2)
+
+    setShowTutorial(!seenTutorial && !hasPrefilledPlayer)
+
+    if (
+      initialPlayer1 &&
+      initialPlayer2 &&
+      initialPlayer1.toLowerCase() !== initialPlayer2.toLowerCase()
+    ) {
+      void comparePlayers(undefined, {
+        player1: initialPlayer1,
+        player2: initialPlayer2,
+      })
+    }
   }, [])
 
   function closeTutorial() {

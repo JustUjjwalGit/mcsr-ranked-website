@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Star } from 'lucide-react'
+import { ArrowRightLeft, Star } from 'lucide-react'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { mapMatchToCard, mapUserToProfile, parseMatchList } from '@/lib/mcsr'
 import { MatchActions } from '@/components/match-actions'
 import { UserAvatar } from '@/components/user-avatar'
@@ -125,7 +126,7 @@ export default function PlayerPage() {
             <Card className="border border-border bg-card p-8">
               <div className="grid gap-8 lg:grid-cols-[minmax(240px,300px)_1fr]">
                 <div className="flex justify-center lg:justify-start">
-                  <div className="relative flex h-105 w-full max-w-75 items-end justify-center overflow-hidden rounded-lg border border-primary/40 bg-gradient-to-b from-primary/10 via-muted/20 to-background/80 p-4">
+                  <div className="relative flex h-107 w-full max-w-75 items-end justify-center overflow-hidden rounded-lg border border-primary/40 bg-gradient-to-b from-primary/10 via-muted/20 to-background/80 p-4">
                     <UserSkinViewer
                       uuid={player.uuid}
                       username={player.username}
@@ -158,18 +159,31 @@ export default function PlayerPage() {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant={favorite ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={handleFavoriteToggle}
-                      className="w-full sm:w-auto"
-                    >
-                      <Star
-                        className={`h-4 w-4 ${favorite ? 'fill-current' : ''}`}
-                      />
-                      {favorite ? 'Favorited' : 'Favorite'}
-                    </Button>
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
+                      <Link
+                        href={`/versus?player1=${encodeURIComponent(player.username)}`}
+                        className={buttonVariants({
+                          variant: 'outline',
+                          size: 'sm',
+                          className: 'w-full sm:w-auto',
+                        })}
+                      >
+                        <ArrowRightLeft className="h-4 w-4" />
+                        Compare
+                      </Link>
+                      <Button
+                        type="button"
+                        variant={favorite ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={handleFavoriteToggle}
+                        className="w-full sm:w-auto"
+                      >
+                        <Star
+                          className={`h-4 w-4 ${favorite ? 'fill-current' : ''}`}
+                        />
+                        {favorite ? 'Favorited' : 'Favorite'}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
