@@ -2,14 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import {
-  Clock,
-  ExternalLink,
-  Search,
-  Star,
-  Trash2,
-  Video,
-} from 'lucide-react'
+import { Clock, Search, Star, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { UserAvatar } from '@/components/user-avatar'
@@ -83,7 +76,7 @@ export function HomePersonalHub() {
   const twitchEmbedUrl = useMemo(() => {
     if (!featuredVod || typeof window === 'undefined') return ''
     const parent = window.location.hostname
-    return `https://player.twitch.tv/?video=${featuredVod.id}&parent=${parent}&muted=true&autoplay=true`
+    return `https://player.twitch.tv/?video=v${featuredVod.id}&parent=${parent}&muted=true&autoplay=true&controls=false`
   }, [featuredVod])
 
   function handleClearRecentSearches() {
@@ -191,39 +184,22 @@ export function HomePersonalHub() {
         </div>
       </Card>
 
-      <Card className="border border-primary/40 bg-card/85 p-5 backdrop-blur-sm">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Video className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold uppercase text-muted-foreground">
-              Daily Featured Match
-            </h2>
-          </div>
-          {featuredVod && (
-            <a
-              href={featuredVod.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary transition hover:text-foreground"
-              aria-label="Open Twitch VOD"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          )}
-        </div>
-
+      <Card className="overflow-hidden border border-primary/40 bg-card/85 p-0 backdrop-blur-sm">
         {vodLoading ? (
-          <div className="aspect-video animate-pulse rounded border border-border bg-muted" />
+          <div className="aspect-video animate-pulse bg-muted" />
         ) : twitchEmbedUrl ? (
-          <iframe
-            src={twitchEmbedUrl}
-            title="Daily Featured Match Twitch VOD"
-            allow="autoplay; fullscreen; picture-in-picture"
-            allowFullScreen
-            className="aspect-video w-full rounded border border-border bg-black"
-          />
+          <div className="aspect-video overflow-hidden bg-black">
+            <iframe
+              src={twitchEmbedUrl}
+              title="Daily Featured Match Twitch VOD"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              tabIndex={-1}
+              className="pointer-events-none h-full w-full border-0 bg-black"
+            />
+          </div>
         ) : (
-          <div className="flex aspect-video items-center justify-center rounded border border-dashed border-border bg-muted/20 p-4 text-center text-sm text-muted-foreground">
+          <div className="flex aspect-video items-center justify-center bg-muted/20 p-4 text-center text-sm text-muted-foreground">
             No Twitch VOD found right now.
           </div>
         )}
