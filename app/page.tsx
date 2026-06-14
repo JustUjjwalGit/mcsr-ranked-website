@@ -8,8 +8,8 @@ export default function Page() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-7xl px-4">
-        <div className="pt-8">
+      <main className="mx-auto max-w-7xl px-3 sm:px-4">
+        <div className="pt-6 sm:pt-8">
           <HomePersonalHub />
         </div>
         <div className="pt-4">

@@ -3,8 +3,8 @@ import { SiteLogo } from '@/components/site-logo'
 export function Footer() {
   return (
     <footer className="border-t border-border bg-black/40 backdrop-blur-sm">
-      <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="grid gap-8 md:grid-cols-4">
+      <div className="mx-auto max-w-7xl px-3 py-8 sm:px-4 sm:py-12">
+        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 font-bold text-lg">
@@ -78,7 +78,7 @@ export function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="mt-8 border-t border-border pt-8 text-center text-sm text-muted-foreground">
+        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground sm:pt-8">
           <p>© {new Date().getFullYear()} MCSR Ranked. All rights reserved.</p>
         </div>
       </div>

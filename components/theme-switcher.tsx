@@ -180,24 +180,26 @@ export function ThemeSwitcher() {
       </Button>
 
       {open && (
-        <div className="fixed inset-0 z-[90] bg-black/70 px-4 py-6 backdrop-blur-sm">
-          <div className="mx-auto flex max-h-[calc(100vh-3rem)] max-w-6xl flex-col overflow-hidden rounded border border-primary/40 bg-card shadow-2xl shadow-black/60">
-            <div className="flex items-center justify-between gap-4 border-b border-border p-4">
+        <div className="fixed inset-0 z-[90] bg-black/70 px-2 py-2 backdrop-blur-sm sm:px-4 sm:py-6">
+          <div className="mx-auto flex max-h-[calc(100dvh-1rem)] max-w-6xl flex-col overflow-hidden rounded border border-primary/40 bg-card shadow-2xl shadow-black/60 sm:max-h-[calc(100dvh-3rem)]">
+            <div className="flex items-center justify-between gap-3 border-b border-border p-3 sm:gap-4 sm:p-4">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-primary bg-primary/15 text-primary">
                   <Palette className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-xl font-bold text-foreground">Theme</h2>
+                  <h2 className="text-lg font-bold text-foreground sm:text-xl">
+                    Theme
+                  </h2>
                   <p className="truncate text-sm text-muted-foreground">
                     Pick a preset or build a custom look.
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={resetTheme}>
                   <RotateCcw className="h-4 w-4" />
-                  Reset
+                  <span className="hidden sm:inline">Reset</span>
                 </Button>
                 <Button
                   type="button"
@@ -211,8 +213,8 @@ export function ThemeSwitcher() {
               </div>
             </div>
 
-            <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1.2fr)_24rem]">
-              <section className="min-h-0 overflow-y-auto border-b border-border p-4 lg:border-b-0 lg:border-r">
+            <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:overflow-hidden lg:grid-cols-[minmax(0,1.2fr)_24rem]">
+              <section className="border-b border-border p-3 sm:p-4 lg:min-h-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
                 <div className="sticky top-0 z-10 bg-card pb-3">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -272,7 +274,7 @@ export function ThemeSwitcher() {
                 </div>
               </section>
 
-              <aside className="min-h-0 overflow-y-auto p-4">
+              <aside className="p-3 sm:p-4 lg:min-h-0 lg:overflow-y-auto">
                 <div className="space-y-5">
                   <div>
                     <h3 className="text-sm font-semibold uppercase text-muted-foreground">
@@ -282,7 +284,7 @@ export function ThemeSwitcher() {
                       {colorControls.map((control) => (
                         <label
                           key={control.key}
-                          className="grid grid-cols-[1fr_2.75rem_6rem] items-center gap-2 text-sm"
+                          className="grid grid-cols-[minmax(0,1fr)_2.75rem_minmax(5.5rem,6rem)] items-center gap-2 text-sm"
                         >
                           <span className="truncate text-muted-foreground">
                             {control.label}

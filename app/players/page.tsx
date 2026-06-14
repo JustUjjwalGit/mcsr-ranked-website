@@ -43,11 +43,13 @@ export default function PlayersPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8">
         <div className="space-y-6">
           {/* Header */}
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold text-foreground">Top Players</h1>
+            <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
+              Top Players
+            </h1>
             <p className="text-muted-foreground">
               Browse profiles of top Minecraft speedrunners
             </p>
@@ -72,7 +74,7 @@ export default function PlayersPage() {
                 >
                   <div className="space-y-4 p-4">
                     {/* Header with Rank */}
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground uppercase">
                           Rank
@@ -100,8 +102,8 @@ export default function PlayersPage() {
                     </div>
 
                     {/* Player Info */}
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-foreground">
+                    <div className="min-w-0 space-y-1">
+                      <h3 className="truncate font-bold text-foreground">
                         {player.username}
                       </h3>
                       <p className="text-xs text-muted-foreground">

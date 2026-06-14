@@ -64,18 +64,20 @@ export default function LeaderboardsPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8">
         <div className="space-y-6">
           {/* Header */}
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold text-foreground">Global Leaderboard</h1>
+            <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
+              Global Leaderboard
+            </h1>
             <p className="text-muted-foreground">
               Track the top Minecraft speedrunners by Elo rating
             </p>
           </div>
 
           {/* Filters */}
-          <Card className="border border-border bg-card p-4">
+          <Card className="border border-border bg-card p-3 sm:p-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               {/* Search */}
               <div className="relative flex-1 md:max-w-xs">
@@ -90,7 +92,7 @@ export default function LeaderboardsPage() {
               </div>
 
               {/* Season Filter */}
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:flex">
                 <Button
                   variant={season === 'current' ? 'default' : 'outline'}
                   onClick={() => {
@@ -112,8 +114,69 @@ export default function LeaderboardsPage() {
           </Card>
 
           {/* Leaderboard Table */}
-          <Card className="border border-border bg-card overflow-hidden">
-            <div className="overflow-x-auto">
+          <Card className="overflow-hidden border border-border bg-card">
+            <div className="space-y-3 p-3 md:hidden">
+              {loading ? (
+                <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  Loading leaderboard...
+                </div>
+              ) : filteredLeaderboard.length > 0 ? (
+                filteredLeaderboard.map((entry) => (
+                  <a
+                    key={entry.username}
+                    href={`/player/${entry.username}`}
+                    className="block rounded border border-border bg-muted/35 p-3 transition hover:bg-muted"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded font-semibold ${
+                            entry.rank === 1
+                              ? 'bg-primary text-primary-foreground'
+                              : entry.rank <= 3
+                                ? 'bg-muted text-foreground'
+                                : 'bg-muted/50 text-muted-foreground'
+                          }`}
+                        >
+                          {entry.rank}
+                        </span>
+                        <UserAvatar
+                          uuid={entry.uuid}
+                          username={entry.username}
+                          size={40}
+                          className="h-10 w-10 shrink-0 rounded-md border border-border"
+                        />
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold text-primary">
+                            {entry.username}
+                          </span>
+                          <span className="block text-xs uppercase text-muted-foreground">
+                            {entry.country || 'Unknown'}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="tabular-figures block font-mono font-semibold text-foreground">
+                          {entry.elo.toLocaleString()}
+                        </span>
+                        <span className="tabular-figures text-xs text-muted-foreground">
+                          <span className="text-green-500">{entry.wins}</span>
+                          <span className="mx-1">-</span>
+                          <span className="text-red-500">{entry.losses}</span>
+                        </span>
+                      </span>
+                    </div>
+                  </a>
+                ))
+              ) : (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No players found
+                </p>
+              )}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full">
                 <thead className="border-b border-border bg-muted/50">
                   <tr>

@@ -146,7 +146,7 @@ function CountryBreakdownChart({ countries }: { countries: CountryBucket[] }) {
         countries.map((country) => (
           <div
             key={country.country}
-            className="grid grid-cols-[4.5rem_minmax(0,1fr)_3.5rem] items-center gap-3"
+            className="grid grid-cols-[3.5rem_minmax(0,1fr)_3rem] items-center gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)_3.5rem] sm:gap-3"
           >
             <span className="truncate text-sm font-semibold uppercase text-foreground">
               {country.country}
@@ -317,11 +317,13 @@ export default function StatsPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8">
         <div className="space-y-6">
           {/* Header */}
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold text-foreground">Global Statistics</h1>
+            <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
+              Global Statistics
+            </h1>
             <p className="text-muted-foreground">
               Overall metrics and insights for the MCSR community
             </p>
@@ -329,7 +331,7 @@ export default function StatsPage() {
 
           {/* Season Info */}
           {stats?.seasonInfo && (
-            <Card className="relative z-30 border border-primary bg-primary/5 p-6">
+            <Card className="relative z-30 border border-primary bg-primary/5 p-4 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-primary">
@@ -360,30 +362,30 @@ export default function StatsPage() {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="border border-border bg-card p-6">
+              <Card className="border border-border bg-card p-4 sm:p-6">
                 <p className="text-sm text-muted-foreground mb-2">Recent Ranked</p>
-                <p className="text-3xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-foreground sm:text-3xl">
                   {stats?.recentActivity?.toLocaleString() || '0'}
                 </p>
               </Card>
 
-              <Card className="border border-border bg-card p-6">
+              <Card className="border border-border bg-card p-4 sm:p-6">
                 <p className="text-sm text-muted-foreground mb-2">Live Matches</p>
-                <p className="text-3xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-foreground sm:text-3xl">
                   {stats?.liveMatches?.toLocaleString() || '0'}
                 </p>
               </Card>
 
-              <Card className="border border-border bg-card p-6">
+              <Card className="border border-border bg-card p-4 sm:p-6">
                 <p className="text-sm text-muted-foreground mb-2">Highest Elo</p>
-                <p className="text-3xl font-bold text-primary">
+                <p className="text-2xl font-bold text-primary sm:text-3xl">
                   {stats?.highestElo?.toLocaleString() || '0'}
                 </p>
               </Card>
 
-              <Card className="border border-border bg-card p-6">
+              <Card className="border border-border bg-card p-4 sm:p-6">
                 <p className="text-sm text-muted-foreground mb-2">Top Country</p>
-                <p className="text-3xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-foreground sm:text-3xl">
                   {stats?.topCountry || 'N/A'}
                 </p>
               </Card>
@@ -391,11 +393,11 @@ export default function StatsPage() {
           )}
 
           {/* Country Breakdown */}
-          <Card className="border border-border bg-card p-6">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,1.6fr)]">
+          <Card className="border border-border bg-card p-4 sm:p-6">
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,1.6fr)]">
               <div className="space-y-3">
                 <h2 className="text-xl font-bold text-foreground">Country Breakdown</h2>
-                <p className="text-3xl font-semibold text-primary">
+                <p className="text-2xl font-semibold text-primary sm:text-3xl">
                   {stats?.topCountry || 'N/A'}
                 </p>
                 <p className="text-sm text-muted-foreground">
@@ -419,7 +421,7 @@ export default function StatsPage() {
 
           {/* Additional Metrics */}
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="border border-border bg-card p-6">
+            <Card className="border border-border bg-card p-4 sm:p-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground">
                   Top Gainers (24h)
@@ -431,7 +433,7 @@ export default function StatsPage() {
               </div>
             </Card>
 
-            <Card className="border border-border bg-card p-6">
+            <Card className="border border-border bg-card p-4 sm:p-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-foreground">
                   Top Losers (24h)

@@ -131,10 +131,12 @@
   }
   html {
     @apply font-sans;
+    overflow-x: hidden;
   }
   body {
     @apply text-foreground relative min-h-screen;
     background-color: var(--background);
+    overflow-x: hidden;
   }
   body::before {
     content: '';
@@ -156,6 +158,20 @@
     z-index: -1;
     pointer-events: none;
     background: var(--app-background-overlay);
+  }
+}
+
+@media (max-width: 640px) {
+  body::before {
+    background-attachment: scroll;
+    filter: blur(2px) brightness(0.7);
+    transform: scale(1.01);
+  }
+
+  body::after {
+    background:
+      linear-gradient(rgba(0, 0, 0, 0.76), rgba(0, 0, 0, 0.78)),
+      rgba(0, 0, 0, 0.72);
   }
 }
 

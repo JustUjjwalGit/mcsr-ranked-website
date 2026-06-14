@@ -136,9 +136,21 @@ export function extractRecordStats(
 ) {
   const data = (body as ApiEnvelope<{ statistics?: McsrStatistics }>).data
   const bucket = data?.statistics?.[scope]
+  const wins = bucket?.wins?.ranked ?? 0
+  const losses = bucket?.loses?.ranked ?? 0
+  const matches = bucket?.playedMatches?.ranked ?? wins + losses
+  const completions = bucket?.completions?.ranked ?? 0
+  const forfeits = bucket?.forfeits?.ranked ?? 0
+
   return {
-    wins: bucket?.wins?.ranked ?? 0,
-    losses: bucket?.loses?.ranked ?? 0,
+    wins,
+    losses,
+    matches,
+    completions,
+    forfeits,
+    bestTime: bucket?.bestTime?.ranked,
+    playtime: bucket?.playtime?.ranked ?? 0,
+    completionTime: bucket?.completionTime?.ranked ?? 0,
     currentStreak: bucket?.currentWinStreak?.ranked,
     bestStreak: bucket?.highestWinStreak?.ranked,
   }
@@ -162,11 +174,31 @@ export function mapUserToProfile(body: unknown) {
   const user = parseUserProfile(body)
   if (!user) return null
   const stats = extractRecordStats(body, 'season')
+  const totalStats = extractRecordStats(body, 'total')
+  const data = (body as ApiEnvelope<{
+    seasonResult?: { highest?: number | null; lowest?: number | null } | null
+    timestamp?: { lastRanked?: number | null; firstOnline?: number | null }
+  }>).data
+  const completionRate =
+    stats.matches > 0 ? stats.completions / stats.matches : 0
+  const forfeitRate = stats.matches > 0 ? stats.forfeits / stats.matches : 0
+
   return {
     ...mapLeaderboardEntry({ ...user, wins: stats.wins, losses: stats.losses }),
     statistics: {
       currentStreak: stats.currentStreak,
       bestStreak: stats.bestStreak,
+      bestTime: stats.bestTime,
+      seasonMatches: stats.matches,
+      totalWins: totalStats.wins,
+      totalLosses: totalStats.losses,
+      totalMatches: totalStats.matches,
+      completionRate,
+      forfeitRate,
+      playtime: stats.playtime,
+      seasonHighestElo: data?.seasonResult?.highest ?? user.eloRate ?? 0,
+      seasonLowestElo: data?.seasonResult?.lowest ?? user.eloRate ?? 0,
+      lastRanked: data?.timestamp?.lastRanked,
     },
   }
 }

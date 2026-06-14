@@ -29,6 +29,20 @@ export function getPlayerBodyUrl(
   return PLACEHOLDER
 }
 
+export function getPlayerComboUrl(
+  uuid?: string | null,
+  username?: string | null,
+  size = 256,
+): string {
+  if (uuid) {
+    return `https://mc-heads.net/combo/${uuid}/${size}`
+  }
+  if (username) {
+    return `https://mc-heads.net/combo/${encodeURIComponent(username)}/${size}`
+  }
+  return PLACEHOLDER
+}
+
 export function getPlayerSkinUrl(
   uuid?: string | null,
   username?: string | null,

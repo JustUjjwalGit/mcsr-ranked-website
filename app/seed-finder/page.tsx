@@ -116,7 +116,7 @@ function SeedCard({
   onCopy: (seed: string) => void
 }) {
   return (
-    <Card className="border border-border bg-card p-4">
+    <Card className="border border-border bg-card p-3 sm:p-4">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -127,7 +127,7 @@ function SeedCard({
               <span>{seed.profile}</span>
               <span>{formatDuration(seed.durationMs)}</span>
             </div>
-            <p className="break-all font-mono text-2xl font-bold text-foreground">
+            <p className="break-all font-mono text-xl font-bold text-foreground sm:text-2xl">
               {seed.seed}
             </p>
           </div>
@@ -259,15 +259,15 @@ export default function SeedFinderPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8">
         <div className="space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-start gap-3 sm:items-center">
               <div className="flex h-11 w-11 items-center justify-center rounded border border-primary bg-primary/15 text-primary">
                 <Search className="h-5 w-5" />
               </div>
-              <div>
-                <h1 className="text-4xl font-bold text-foreground">
+              <div className="min-w-0">
+                <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
                   FSG Seed Finder
                 </h1>
                 <p className="text-muted-foreground">
@@ -291,7 +291,7 @@ export default function SeedFinderPage() {
             </Button>
           </div>
 
-          <Card className="border border-border bg-card p-4">
+          <Card className="border border-border bg-card p-3 sm:p-4">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {seedProfiles.map((profile) => {
                 const active = profile.key === selectedProfile
@@ -301,15 +301,15 @@ export default function SeedFinderPage() {
                     key={profile.key}
                     type="button"
                     onClick={() => selectProfile(profile.key)}
-                    className={`min-h-28 rounded border p-4 text-left transition ${
+                    className={`min-h-28 rounded border p-3 text-left transition sm:p-4 ${
                       active
                         ? 'border-primary bg-primary/15 text-primary'
                         : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                     }`}
                   >
-                    <span className="flex items-center justify-between gap-3">
+                    <span className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                       <span className="font-semibold">{profile.label}</span>
-                      <span className="rounded border border-current/30 px-2 py-1 text-xs">
+                      <span className="w-fit rounded border border-current/30 px-2 py-1 text-xs">
                         {profile.type}
                       </span>
                     </span>
@@ -326,9 +326,9 @@ export default function SeedFinderPage() {
             <Card className="border border-border bg-card p-4">
               <div className="flex items-center gap-3">
                 <Terminal className="h-5 w-5 text-primary" />
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Profile</p>
-                  <p className="text-xl font-bold text-foreground">
+                  <p className="truncate text-lg font-bold text-foreground sm:text-xl">
                     {activeProfile.label}
                   </p>
                 </div>
@@ -339,7 +339,7 @@ export default function SeedFinderPage() {
                 <Gauge className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Loaded</p>
-                  <p className="text-xl font-bold text-foreground">
+                  <p className="text-lg font-bold text-foreground sm:text-xl">
                     {seeds.length} seeds
                   </p>
                 </div>
@@ -350,7 +350,7 @@ export default function SeedFinderPage() {
                 <Cpu className="h-5 w-5 text-primary" />
                 <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Runner</p>
-                  <p className="truncate text-xl font-bold text-foreground">
+                  <p className="truncate text-lg font-bold text-foreground sm:text-xl">
                     {runner ?? 'Local FSG'}
                   </p>
                 </div>

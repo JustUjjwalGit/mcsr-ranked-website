@@ -132,16 +132,16 @@ export function LiveNowCard() {
   )
 
   return (
-    <Card className="border border-primary/40 bg-card/85 p-5 backdrop-blur-sm">
+    <Card className="border border-primary/40 bg-card/85 p-4 backdrop-blur-sm sm:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <div className="relative flex h-11 w-11 items-center justify-center rounded border border-primary bg-primary/15 text-primary">
             <Radio className="h-5 w-5" />
             {matches.length > 0 && (
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-green-500" />
             )}
           </div>
-          <div>
+          <div className="min-w-0">
             <h2 className="text-xl font-bold text-foreground">Live Now</h2>
             <p className="text-sm text-muted-foreground">
               {matches.length.toLocaleString()} ranked matches,{' '}
@@ -187,7 +187,7 @@ export function LiveNowCard() {
                     <Timer className="h-3.5 w-3.5 text-primary" />
                     {formatDuration(match.currentTime)}
                   </span>
-                  <span className="truncate text-right">
+                  <span className="min-w-0 truncate text-right">
                     {formatTimeline(timeline?.type)}
                   </span>
                 </div>

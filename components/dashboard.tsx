@@ -68,11 +68,11 @@ export function Dashboard() {
   }, [])
 
   return (
-    <div className="space-y-8 py-8">
+    <div className="space-y-6 py-6 sm:space-y-8 sm:py-8">
       {/* Top Player Section */}
       <div className="grid gap-8 md:grid-cols-3">
         <div className="md:col-span-1">
-          <div className="border border-primary/40 bg-card/80 backdrop-blur-sm p-6 rounded-lg">
+          <div className="rounded-lg border border-primary/40 bg-card/80 p-4 backdrop-blur-sm sm:p-6">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase text-muted-foreground">
                 Top 1 Ranked Player
@@ -140,7 +140,7 @@ export function Dashboard() {
 
         {/* Leaderboard Preview */}
         <div className="md:col-span-2">
-          <div className="border border-primary/40 bg-card/80 backdrop-blur-sm p-6 rounded-lg">
+          <div className="rounded-lg border border-primary/40 bg-card/80 p-4 backdrop-blur-sm sm:p-6">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase text-muted-foreground">
                 Global Leaderboard
@@ -193,7 +193,7 @@ export function Dashboard() {
 
               <Link href="/leaderboards">
                 <Button variant="outline" className="w-full">
-                  View Full Leaderboard →
+                  View Full Leaderboard
                 </Button>
               </Link>
             </div>
@@ -203,7 +203,7 @@ export function Dashboard() {
 
       {/* Recent Matches */}
       <div>
-        <div className="border border-primary/40 bg-card/80 backdrop-blur-sm p-6 rounded-lg">
+        <div className="rounded-lg border border-primary/40 bg-card/80 p-4 backdrop-blur-sm sm:p-6">
           <div className="space-y-4">
             <h3 className="text-sm font-semibold uppercase text-muted-foreground">
               Recent Matches
@@ -223,18 +223,18 @@ export function Dashboard() {
                 recentMatches.map((match) => (
                   <div
                     key={match.id}
-                    className="flex items-center justify-between rounded border border-border bg-muted/50 p-3 transition hover:bg-muted"
+                    className="flex flex-col gap-3 rounded border border-border bg-muted/50 p-3 transition hover:bg-muted sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground">
+                    <div className="min-w-0 space-y-2 sm:space-y-1">
+                      <span className="block text-xs text-muted-foreground">
                         {new Date(match.timestamp).toLocaleString()}
                       </span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                         <span
                           className={
                             match.winner === match.player1
-                              ? 'font-semibold text-foreground'
-                              : 'text-muted-foreground'
+                              ? 'max-w-[12rem] truncate font-semibold text-foreground sm:max-w-none'
+                              : 'max-w-[12rem] truncate text-muted-foreground sm:max-w-none'
                           }
                         >
                           {match.player1}
@@ -243,8 +243,8 @@ export function Dashboard() {
                         <span
                           className={
                             match.winner === match.player2
-                              ? 'font-semibold text-foreground'
-                              : 'text-muted-foreground'
+                              ? 'max-w-[12rem] truncate font-semibold text-foreground sm:max-w-none'
+                              : 'max-w-[12rem] truncate text-muted-foreground sm:max-w-none'
                           }
                         >
                           {match.player2}
@@ -255,6 +255,7 @@ export function Dashboard() {
                       matchId={match.id}
                       playerNickname={match.replayPlayer}
                       vodUrl={match.vodUrl}
+                      className="w-full sm:w-auto"
                     />
                   </div>
                 ))
@@ -267,7 +268,7 @@ export function Dashboard() {
 
             <Link href="/matches">
               <Button variant="outline" className="w-full">
-                View All Matches →
+                View All Matches
               </Button>
             </Link>
           </div>

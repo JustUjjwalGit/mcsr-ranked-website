@@ -113,7 +113,7 @@ function PlayerCard({
   player: PlayerSummary
 }) {
   return (
-    <Card className="border border-border bg-card p-5">
+    <Card className="border border-border bg-card p-4 sm:p-5">
       <div className="flex min-w-0 items-center gap-3">
         <UserAvatar
           uuid={player.uuid}
@@ -122,7 +122,7 @@ function PlayerCard({
           className="h-14 w-14 shrink-0 rounded-lg border border-border"
         />
         <div className="min-w-0">
-          <h2 className="truncate text-xl font-bold text-foreground">
+          <h2 className="truncate text-lg font-bold text-foreground sm:text-xl">
             {player.username}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -134,13 +134,13 @@ function PlayerCard({
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <div className="rounded border border-border bg-muted/40 p-3">
           <p className="text-xs text-muted-foreground">Elo</p>
-          <p className="tabular-figures font-mono text-2xl font-bold text-primary">
+          <p className="tabular-figures font-mono text-xl font-bold text-primary sm:text-2xl">
             {player.elo.toLocaleString()}
           </p>
         </div>
         <div className="rounded border border-border bg-muted/40 p-3">
           <p className="text-xs text-muted-foreground">Best Time</p>
-          <p className="text-2xl font-bold text-foreground">
+          <p className="text-xl font-bold text-foreground sm:text-2xl">
             {formatTime(player.bestTime)}
           </p>
         </div>
@@ -178,17 +178,17 @@ function VersusStatRow({
   player2Value: string | number
 }) {
   return (
-    <div className="grid gap-3 rounded border border-border bg-muted/30 p-3 md:grid-cols-[1fr_1.2fr_1fr] md:items-center">
+    <div className="grid gap-3 rounded border border-border bg-muted/30 p-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center md:grid-cols-[1fr_1.2fr_1fr]">
       <div className="rounded border border-border bg-background/40 p-3 text-left">
         <p className="text-xs text-muted-foreground">{player1Name}</p>
-        <p className="font-semibold text-foreground">{player1Value}</p>
+        <p className="break-words font-semibold text-foreground">{player1Value}</p>
       </div>
       <div className="text-center">
         <p className="font-semibold text-foreground">{label}</p>
       </div>
-      <div className="rounded border border-border bg-background/40 p-3 text-right">
+      <div className="rounded border border-border bg-background/40 p-3 text-left sm:text-right">
         <p className="text-xs text-muted-foreground">{player2Name}</p>
-        <p className="font-semibold text-foreground">{player2Value}</p>
+        <p className="break-words font-semibold text-foreground">{player2Value}</p>
       </div>
     </div>
   )
@@ -202,14 +202,16 @@ function TutorialModal({
   onUseExample: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-      <Card className="max-w-xl border border-primary/40 bg-card p-6 shadow-2xl shadow-black/60">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-2 py-2 backdrop-blur-sm sm:px-4">
+      <Card className="max-h-[calc(100dvh-1rem)] max-w-xl overflow-y-auto border border-primary/40 bg-card p-4 shadow-2xl shadow-black/60 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="flex h-10 w-10 items-center justify-center rounded border border-primary bg-primary/15 text-primary">
               <Info className="h-5 w-5" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">How Versus Works</h2>
+            <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+              How Versus Works
+            </h2>
             <p className="text-sm leading-6 text-muted-foreground">
               Search two MCSR Ranked players, compare their season and all-time
               stats, then get a winner estimate based on Elo, win rate,
@@ -359,15 +361,15 @@ export default function VersusPage() {
         <TutorialModal onClose={closeTutorial} onUseExample={useExample} />
       )}
 
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8">
         <div className="space-y-6">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded border border-primary bg-primary/15 text-primary">
                 <ArrowRightLeft className="h-5 w-5" />
               </div>
-              <div>
-                <h1 className="text-4xl font-bold text-foreground">Versus</h1>
+              <div className="min-w-0">
+                <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Versus</h1>
                 <p className="text-muted-foreground">
                   Compare two players and estimate who has the statistical edge
                 </p>
@@ -375,7 +377,7 @@ export default function VersusPage() {
             </div>
           </div>
 
-          <Card className="border border-border bg-card p-5">
+          <Card className="border border-border bg-card p-4 sm:p-5">
             <form
               onSubmit={comparePlayers}
               className="grid gap-4 md:grid-cols-[minmax(0,1fr)_3rem_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)_auto] lg:items-center"
@@ -431,17 +433,17 @@ export default function VersusPage() {
 
           {comparison && firstPlayer && secondPlayer && (
             <div className="space-y-6">
-              <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr] lg:items-stretch">
+              <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch">
                 <PlayerCard player={firstPlayer} />
                 <div className="flex items-center justify-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded border border-primary bg-primary/15 text-primary">
+                  <div className="flex h-10 w-10 items-center justify-center rounded border border-primary bg-primary/15 text-primary sm:h-12 sm:w-12">
                     <Zap className="h-5 w-5" />
                   </div>
                 </div>
                 <PlayerCard player={secondPlayer} />
               </div>
 
-              <Card className="border border-border bg-card p-6">
+              <Card className="border border-border bg-card p-4 sm:p-6">
                 <div className="mb-5 flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-primary" />
                   <h2 className="text-xl font-bold text-foreground">
@@ -456,7 +458,7 @@ export default function VersusPage() {
                     return (
                       <div
                         key={metric.key}
-                        className="grid gap-3 rounded border border-border bg-muted/30 p-3 md:grid-cols-[1fr_1.2fr_1fr] md:items-center"
+                        className="grid gap-3 rounded border border-border bg-muted/30 p-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center md:grid-cols-[1fr_1.2fr_1fr]"
                       >
                         <div
                           className={`rounded border p-3 text-left ${
@@ -468,7 +470,9 @@ export default function VersusPage() {
                           <p className="text-xs text-muted-foreground">
                             {firstPlayer.username}
                           </p>
-                          <p className="font-semibold">{metric.player1.display}</p>
+                          <p className="break-words font-semibold">
+                            {metric.player1.display}
+                          </p>
                         </div>
 
                         <div className="text-center">
@@ -479,7 +483,7 @@ export default function VersusPage() {
                         </div>
 
                         <div
-                          className={`rounded border p-3 text-right ${
+                          className={`rounded border p-3 text-left sm:text-right ${
                             winner === 'player2'
                               ? 'border-primary/50 bg-primary/10 text-primary'
                               : 'border-border bg-background/40 text-foreground'
@@ -488,7 +492,9 @@ export default function VersusPage() {
                           <p className="text-xs text-muted-foreground">
                             {secondPlayer.username}
                           </p>
-                          <p className="font-semibold">{metric.player2.display}</p>
+                          <p className="break-words font-semibold">
+                            {metric.player2.display}
+                          </p>
                         </div>
                       </div>
                     )
@@ -496,7 +502,7 @@ export default function VersusPage() {
                 </div>
               </Card>
 
-              <Card className="border border-border bg-card p-6">
+              <Card className="border border-border bg-card p-4 sm:p-6">
                 <h2 className="mb-4 text-xl font-bold text-foreground">
                   Extra Context
                 </h2>
@@ -546,14 +552,14 @@ export default function VersusPage() {
                 </div>
               </Card>
 
-              <Card className="border border-primary/40 bg-primary/5 p-6">
+              <Card className="border border-primary/40 bg-primary/5 p-4 sm:p-6">
                 <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr] lg:items-center">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-primary">
                       <Sparkles className="h-5 w-5" />
                       <h2 className="text-xl font-bold">Final Prediction</h2>
                     </div>
-                    <p className="text-3xl font-bold text-foreground">
+                    <p className="break-words text-2xl font-bold text-foreground sm:text-3xl">
                       {comparison.prediction.winnerUsername}
                     </p>
                     <p className="text-sm text-muted-foreground">

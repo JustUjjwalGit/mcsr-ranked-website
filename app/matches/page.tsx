@@ -46,11 +46,13 @@ export default function MatchesPage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8">
         <div className="space-y-6">
           {/* Header */}
           <div className="space-y-4">
-            <h1 className="text-4xl font-bold text-foreground">Recent Matches</h1>
+            <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
+              Recent Matches
+            </h1>
             <p className="text-muted-foreground">
               Watch and analyze matches from top speedrunners
             </p>
@@ -71,20 +73,20 @@ export default function MatchesPage() {
               matches.map((match) => (
                 <Card
                   key={match.id}
-                  className="border border-border bg-card p-4 transition hover:bg-muted/50"
+                  className="border border-border bg-card p-3 transition hover:bg-muted/50 sm:p-4"
                 >
                   <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="grid w-full gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-4 md:w-auto">
                       {/* Timestamp */}
-                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                      <div className="text-xs text-muted-foreground sm:whitespace-nowrap">
                         {new Date(match.timestamp).toLocaleString()}
                       </div>
 
                       {/* Players */}
-                      <div className="flex items-center gap-3 flex-1">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                         <a
                           href={`/player/${match.player1}`}
-                          className={`font-semibold transition hover:text-primary ${
+                          className={`max-w-[12rem] truncate font-semibold transition hover:text-primary sm:max-w-none ${
                             match.winner === match.player1
                               ? 'text-primary'
                               : 'text-muted-foreground'
@@ -95,7 +97,7 @@ export default function MatchesPage() {
                         <span className="text-muted-foreground">vs</span>
                         <a
                           href={`/player/${match.player2}`}
-                          className={`font-semibold transition hover:text-primary ${
+                          className={`max-w-[12rem] truncate font-semibold transition hover:text-primary sm:max-w-none ${
                             match.winner === match.player2
                               ? 'text-primary'
                               : 'text-muted-foreground'
@@ -107,7 +109,7 @@ export default function MatchesPage() {
 
                       {/* Duration */}
                       {match.duration && (
-                        <div className="text-sm text-muted-foreground whitespace-nowrap">
+                        <div className="text-sm text-muted-foreground sm:whitespace-nowrap">
                           {match.duration}
                         </div>
                       )}
@@ -131,7 +133,7 @@ export default function MatchesPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between pt-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 pt-4">
             <Button
               variant="outline"
               onClick={() => {
@@ -155,6 +157,7 @@ export default function MatchesPage() {
                 setBefore(lastId)
               }}
               disabled={matches.length < 50 || loading}
+              className="justify-self-end"
             >
               Next →
             </Button>

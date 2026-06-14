@@ -76,7 +76,7 @@ export function HomePersonalHub() {
   const twitchEmbedUrl = useMemo(() => {
     if (!featuredVod || typeof window === 'undefined') return ''
     const parent = window.location.hostname
-    return `https://player.twitch.tv/?video=v${featuredVod.id}&parent=${parent}&muted=true&autoplay=true&controls=false`
+    return `https://player.twitch.tv/?video=${featuredVod.id}&parent=${parent}`
   }, [featuredVod])
 
   function handleClearRecentSearches() {
@@ -89,7 +89,7 @@ export function HomePersonalHub() {
 
   return (
     <section className="grid gap-4 lg:grid-cols-3">
-      <Card className="border border-primary/40 bg-card/85 p-5 backdrop-blur-sm">
+      <Card className="border border-primary/40 bg-card/85 p-4 backdrop-blur-sm sm:p-5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
@@ -118,7 +118,9 @@ export function HomePersonalHub() {
                 href={`/player/${encodeURIComponent(username)}`}
                 className="flex items-center justify-between rounded border border-border bg-muted/35 px-3 py-2 transition hover:bg-muted/70"
               >
-                <span className="font-medium text-foreground">{username}</span>
+                <span className="min-w-0 truncate font-medium text-foreground">
+                  {username}
+                </span>
                 <Search className="h-4 w-4 text-muted-foreground" />
               </Link>
             ))
@@ -130,7 +132,7 @@ export function HomePersonalHub() {
         </div>
       </Card>
 
-      <Card className="border border-primary/40 bg-card/85 p-5 backdrop-blur-sm">
+      <Card className="border border-primary/40 bg-card/85 p-4 backdrop-blur-sm sm:p-5">
         <div className="flex items-center gap-2">
           <Star className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">
@@ -159,7 +161,7 @@ export function HomePersonalHub() {
                     <span className="block truncate font-medium text-foreground">
                       {player.username}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {player.rank ? `#${player.rank}` : 'Saved player'}
                       {player.elo ? `, ${player.elo.toLocaleString()} Elo` : ''}
                     </span>
@@ -194,8 +196,7 @@ export function HomePersonalHub() {
               title="Daily Featured Match Twitch VOD"
               allow="autoplay; fullscreen; picture-in-picture"
               allowFullScreen
-              tabIndex={-1}
-              className="pointer-events-none h-full w-full border-0 bg-black"
+              className="h-full w-full border-0 bg-black"
             />
           </div>
         ) : (
