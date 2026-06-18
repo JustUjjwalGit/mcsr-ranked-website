@@ -7,7 +7,12 @@ import { ArrowRightLeft, Star } from 'lucide-react'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { mapMatchToCard, mapUserToProfile, parseMatchList } from '@/lib/mcsr'
+import {
+  getBestSeedTypeFromMatches,
+  mapMatchToCard,
+  mapUserToProfile,
+  parseMatchList,
+} from '@/lib/mcsr'
 import { MatchActions } from '@/components/match-actions'
 import { UserAvatar } from '@/components/user-avatar'
 import { UserComboAvatar } from '@/components/user-combo-avatar'
@@ -39,6 +44,7 @@ interface PlayerProfile {
     seasonHighestElo?: number
     seasonLowestElo?: number
     lastRanked?: number | null
+    bestSeedType?: string
   }
 }
 
@@ -119,16 +125,24 @@ export default function PlayerPage() {
         setLoading(true)
         const [playerRes, matchesRes] = await Promise.all([
           fetch(`/api/player?username=${encodeURIComponent(username)}`),
-          fetch(`/api/matches?player=${encodeURIComponent(username)}&limit=20`),
+          fetch(`/api/matches?player=${encodeURIComponent(username)}&limit=100`),
         ])
 
         const playerData = await playerRes.json()
         const matchesData = await matchesRes.json()
         const profile = mapUserToProfile(playerData)
+        const parsedMatches = parseMatchList(matchesData)
 
         if (profile) {
           const nextPlayer = {
             ...profile,
+            statistics: {
+              ...profile.statistics,
+              bestSeedType: getBestSeedTypeFromMatches(
+                parsedMatches,
+                profile.uuid,
+              ),
+            },
             joinDate: undefined,
             lastActive: undefined,
           }
@@ -137,7 +151,7 @@ export default function PlayerPage() {
         }
 
         setMatches(
-          parseMatchList(matchesData).map((match) =>
+          parsedMatches.slice(0, 20).map((match) =>
             mapMatchToCard(match, username),
           ),
         )
@@ -278,6 +292,11 @@ export default function PlayerPage() {
                     <ProfileStatCard
                       label="Season Matches"
                       value={(player.statistics?.seasonMatches ?? 0).toLocaleString()}
+                    />
+                    <ProfileStatCard
+                      label="Best Seed Type"
+                      value={player.statistics?.bestSeedType ?? 'N/A'}
+                      tone="primary"
                     />
                     <ProfileStatCard
                       label="Completion Rate"

@@ -26,12 +26,15 @@ export interface McsrMatch {
   type?: number
   season?: number
   date: number
+  seedType?: string | null
+  bastionType?: string | null
   players: McsrUser[]
   vod?: McsrMatchVod[]
   result?: {
     uuid?: string
     time?: number
   } | null
+  forfeited?: boolean
   changes?: {
     uuid: string
     change: number | null
@@ -205,6 +208,34 @@ export function mapUserToProfile(body: unknown) {
 
 export function getMatchStatsUrl(nickname: string, matchId: number | string) {
   return `https://mcsrranked.com/stats/${encodeURIComponent(nickname)}/${matchId}`
+}
+
+function formatSeedType(value?: string | null) {
+  if (!value) return ''
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}
+
+export function getBestSeedTypeFromMatches(
+  matches: McsrMatch[],
+  playerUuid?: string | null,
+) {
+  const bestMatch = matches
+    .filter((match) => {
+      if (match.forfeited || !match.result?.time || !match.seedType) {
+        return false
+      }
+      return playerUuid ? match.result.uuid === playerUuid : true
+    })
+    .sort((a, b) => (a.result?.time ?? Infinity) - (b.result?.time ?? Infinity))[0]
+
+  if (!bestMatch?.seedType) return 'N/A'
+
+  const seedType = formatSeedType(bestMatch.seedType)
+  const bastionType = formatSeedType(bestMatch.bastionType)
+  return bastionType ? `${seedType} / ${bastionType}` : seedType
 }
 
 export async function enrichLeaderboardUsersWithStats<
