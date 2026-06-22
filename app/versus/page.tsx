@@ -15,6 +15,7 @@ import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/user-avatar'
+import { SiteLoader } from '@/components/site-loader'
 
 interface PlayerSummary {
   uuid: string
@@ -424,10 +425,7 @@ export default function VersusPage() {
 
           {loading && (
             <Card className="border border-border bg-card p-8">
-              <div className="flex items-center justify-center gap-3 text-muted-foreground">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                Comparing player stats...
-              </div>
+              <SiteLoader label="Comparing player stats..." />
             </Card>
           )}
 

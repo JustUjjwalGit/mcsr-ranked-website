@@ -15,6 +15,7 @@ import {
 import { Header } from '@/components/header'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { SiteLoader } from '@/components/site-loader'
 
 type SeedProfileKey =
   | 'filteredseed'
@@ -369,10 +370,7 @@ export default function SeedFinderPage() {
 
           {loading ? (
             <Card className="border border-border bg-card p-8">
-              <div className="flex items-center justify-center gap-3 text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                Running FSG finder...
-              </div>
+              <SiteLoader label="Running FSG finder..." />
             </Card>
           ) : seeds.length > 0 ? (
             <>

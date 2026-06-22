@@ -17,6 +17,7 @@ import { MatchActions } from '@/components/match-actions'
 import { UserAvatar } from '@/components/user-avatar'
 import { UserComboAvatar } from '@/components/user-combo-avatar'
 import { UserSkinViewer } from '@/components/user-skin-viewer'
+import { SiteLoader } from '@/components/site-loader'
 import { isFavoritePlayer, toggleFavoritePlayer } from '@/lib/player-memory'
 
 interface PlayerProfile {
@@ -192,10 +193,7 @@ export default function PlayerPage() {
       <Header />
       <main className="mx-auto max-w-7xl px-3 py-6 sm:px-4 sm:py-8">
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-12">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-            <span className="text-muted-foreground">Loading player data...</span>
-          </div>
+          <SiteLoader label="Loading player data..." className="py-12" />
         ) : player ? (
           <div className="space-y-6">
             {/* Player Header */}
@@ -376,7 +374,7 @@ export default function PlayerPage() {
                             className={`flex h-10 w-10 items-center justify-center rounded font-bold ${
                               match.result === 'win'
                                 ? 'bg-green-500/20 text-green-400'
-                                : 'bg-red-500/20 text-red-400'
+l                                : 'bg-red-500/20 text-red-400'
                             }`}
                           >
                             {match.result === 'win' ? 'W' : 'L'}

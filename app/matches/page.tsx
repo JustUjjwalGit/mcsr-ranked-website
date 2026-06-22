@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { mapMatchToCard, parseMatchList } from '@/lib/mcsr'
 import { MatchActions } from '@/components/match-actions'
+import { SiteLoader } from '@/components/site-loader'
 
 interface Match {
   id: string
@@ -61,14 +62,9 @@ export default function MatchesPage() {
           {/* Matches List */}
           <div className="space-y-3">
             {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-20 animate-pulse rounded border border-border bg-muted"
-                  ></div>
-                ))}
-              </div>
+              <Card className="border border-border bg-card p-10">
+                <SiteLoader label="Loading matches..." />
+              </Card>
             ) : matches.length > 0 ? (
               matches.map((match) => (
                 <Card

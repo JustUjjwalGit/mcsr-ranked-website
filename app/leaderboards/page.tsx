@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Search } from 'lucide-react'
 import { mapLeaderboardEntry, parseLeaderboardUsers } from '@/lib/mcsr'
 import { UserAvatar } from '@/components/user-avatar'
+import { SiteLoader } from '@/components/site-loader'
 
 interface LeaderboardEntry {
   uuid: string
@@ -117,10 +118,7 @@ export default function LeaderboardsPage() {
           <Card className="overflow-hidden border border-border bg-card">
             <div className="space-y-3 p-3 md:hidden">
               {loading ? (
-                <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                  Loading leaderboard...
-                </div>
+                <SiteLoader label="Loading leaderboard..." className="py-8" />
               ) : filteredLeaderboard.length > 0 ? (
                 filteredLeaderboard.map((entry) => (
                   <a
@@ -204,10 +202,7 @@ export default function LeaderboardsPage() {
                   {loading ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                          Loading leaderboard...
-                        </div>
+                        <SiteLoader label="Loading leaderboard..." />
                       </td>
                     </tr>
                   ) : filteredLeaderboard.length > 0 ? (

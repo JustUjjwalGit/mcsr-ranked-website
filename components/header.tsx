@@ -13,6 +13,7 @@ const navLinks = [
   { href: '/players', label: 'Players' },
   { href: '/matches', label: 'Matches' },
   { href: '/stats', label: 'Stats' },
+  { href: '/improve', label: 'Improve' },
   { href: '/seed-finder', label: 'Seeds' },
   { href: '/versus', label: 'Versus' },
 ]

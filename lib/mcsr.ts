@@ -21,6 +21,17 @@ export interface McsrMatchVod {
   startsAt: number
 }
 
+export interface McsrTimeline {
+  uuid: string
+  time: number
+  type: string
+}
+
+export interface McsrCompletion {
+  uuid: string
+  time: number
+}
+
 export interface McsrMatch {
   id: number
   type?: number
@@ -34,6 +45,8 @@ export interface McsrMatch {
     uuid?: string
     time?: number
   } | null
+  completions?: McsrCompletion[]
+  timelines?: McsrTimeline[]
   forfeited?: boolean
   changes?: {
     uuid: string

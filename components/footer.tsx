@@ -32,6 +32,9 @@ export function Footer() {
               <a href="/stats" className="block text-muted-foreground hover:text-foreground transition">
                 Statistics
               </a>
+              <a href="/improve" className="block text-muted-foreground hover:text-foreground transition">
+                Improve
+              </a>
               <a href="/seed-finder" className="block text-muted-foreground hover:text-foreground transition">
                 Seed Finder
               </a>

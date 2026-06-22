@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/user-avatar'
 import { MatchActions } from '@/components/match-actions'
+import { SiteLoader } from '@/components/site-loader'
 import {
   mapLeaderboardEntry,
   mapMatchToCard,
@@ -168,7 +169,7 @@ export function Dashboard() {
                     {loading ? (
                       <tr>
                         <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                          Loading...
+                          <SiteLoader label="Loading leaderboard..." />
                         </td>
                       </tr>
                     ) : (
@@ -211,14 +212,7 @@ export function Dashboard() {
 
             <div className="space-y-2">
               {loading ? (
-                <div className="space-y-2">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="h-12 animate-pulse rounded bg-muted"
-                    ></div>
-                  ))}
-                </div>
+                <SiteLoader label="Loading recent matches..." className="py-6" />
               ) : recentMatches.length > 0 ? (
                 recentMatches.map((match) => (
                   <div
