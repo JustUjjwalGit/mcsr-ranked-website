@@ -374,7 +374,7 @@ export default function PlayerPage() {
                             className={`flex h-10 w-10 items-center justify-center rounded font-bold ${
                               match.result === 'win'
                                 ? 'bg-green-500/20 text-green-400'
-l                                : 'bg-red-500/20 text-red-400'
+                                : 'bg-red-500/20 text-red-400'
                             }`}
                           >
                             {match.result === 'win' ? 'W' : 'L'}
