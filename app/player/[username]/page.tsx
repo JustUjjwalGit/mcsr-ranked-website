@@ -104,7 +104,7 @@ function ProfileStatCard({
   return (
     <div className="rounded border border-border bg-muted/50 p-4">
       <p className="mb-1 text-sm text-muted-foreground">{label}</p>
-      <p className={`break-words text-2xl font-bold ${valueClass}`}>
+      <p className={`wrap-break-word text-2xl font-bold ${valueClass}`}>
         {value}
       </p>
     </div>
@@ -200,7 +200,7 @@ export default function PlayerPage() {
             <Card className="border border-border bg-card p-4 sm:p-6 lg:p-8">
               <div className="grid gap-6 lg:grid-cols-[minmax(220px,300px)_1fr] lg:gap-8">
                 <div className="hidden justify-center sm:flex lg:justify-start">
-                  <div className="relative flex h-80 w-full max-w-64 items-end justify-center overflow-hidden rounded-lg border border-primary/40 bg-gradient-to-b from-primary/10 via-muted/20 to-background/80 p-3 sm:h-96 sm:max-w-72 sm:p-4 lg:h-107 lg:max-w-75">
+                  <div className="relative flex h-80 w-full max-w-64 items-end justify-center overflow-hidden rounded-lg border border-primary/40 bg-linear-to-b from-primary/10 via-muted/20 to-background/80 p-3 sm:h-96 sm:max-w-72 sm:p-4 lg:h-107 lg:max-w-75">
                     <UserSkinViewer
                       uuid={player.uuid}
                       username={player.username}
@@ -229,7 +229,7 @@ export default function PlayerPage() {
                         />
                       </div>
                       <div className="min-w-0">
-                        <h1 className="break-words text-2xl font-bold text-foreground sm:text-3xl">
+                        <h1 className="wrap-break-word text-2xl font-bold text-foreground sm:text-3xl">
                           {player.username}
                         </h1>
                         <p className="text-lg font-semibold text-primary">
