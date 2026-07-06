@@ -14,18 +14,26 @@ export function MatchActions({
   vodUrl,
   className,
 }: MatchActionsProps) {
-  const statsUrl = `https://mcsrranked.com/stats/${encodeURIComponent(playerNickname)}/${matchId}`
-  const href = vodUrl || statsUrl
-  const label = vodUrl ? 'Watch VOD' : 'View Match'
+  const statsUrl = `/stats?player=${encodeURIComponent(playerNickname)}&match=${encodeURIComponent(matchId)}`
 
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), className)}
-    >
-      {label}
-    </a>
+    <span className={cn('inline-flex gap-2', className)}>
+      <a
+        href={statsUrl}
+        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'flex-1 sm:flex-none')}
+      >
+        Stats
+      </a>
+      {vodUrl && (
+        <a
+          href={vodUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'flex-1 sm:flex-none')}
+        >
+          VOD
+        </a>
+      )}
+    </span>
   )
 }

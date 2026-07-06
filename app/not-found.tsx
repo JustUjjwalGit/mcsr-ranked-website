@@ -24,10 +24,10 @@ export default function NotFound() {
               Go Home
             </Link>
             <Link
-              href="/leaderboards"
+              href="/players"
               className={cn(buttonVariants({ variant: 'outline' }))}
             >
-              View Leaderboard
+              View Players
             </Link>
           </div>
         </div>

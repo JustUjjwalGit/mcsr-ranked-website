@@ -144,7 +144,7 @@ export function Dashboard() {
           <div className="rounded-lg border border-primary/40 bg-card/80 p-4 backdrop-blur-sm sm:p-6">
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-                Global Leaderboard
+                Top Ranked Player
               </h3>
 
               <div className="overflow-x-auto">
@@ -192,9 +192,9 @@ export function Dashboard() {
                 </table>
               </div>
 
-              <Link href="/leaderboards">
+              <Link href="/players">
                 <Button variant="outline" className="w-full">
-                  View Full Leaderboard
+                  View Players
                 </Button>
               </Link>
             </div>

@@ -11,8 +11,14 @@ import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
 
 const MATCH_COUNT = 30
 const DETAIL_COUNT = 10
+const BENCHMARK_MATCH_COUNT = 80
+const BENCHMARK_DETAIL_COUNT = 8
+const FAIL_PENALTY_MS = 240_000
+const DEATH_PENALTY_MS = 360_000
+const LOW_SAMPLE_PENALTY_MS = 60_000
+const deathEvents = ['projectelo.timeline.death']
 
-const splitDefinitions = [
+const milestoneDefinitions = [
   {
     key: 'enterNether',
     label: 'Enter Nether',
@@ -60,23 +66,65 @@ const splitDefinitions = [
   },
 ] as const
 
-type SplitKey = (typeof splitDefinitions)[number]['key']
+type MilestoneKey = (typeof milestoneDefinitions)[number]['key']
 
-const failurePhaseOrder: Array<{
-  key: SplitKey
-  label: string
-  maxTime: number
-}> = [
-  { key: 'enterNether', label: 'Overworld / Portal', maxTime: 75_000 },
-  { key: 'findBastion', label: 'Nether Entry', maxTime: 110_000 },
-  { key: 'lootBastion', label: 'Bastion', maxTime: 170_000 },
-  { key: 'findFortress', label: 'Fortress Search', maxTime: 240_000 },
-  { key: 'firstRod', label: 'Blaze Fight', maxTime: 290_000 },
-  { key: 'blindTravel', label: 'Blind Travel', maxTime: 360_000 },
-  { key: 'stronghold', label: 'Stronghold', maxTime: 450_000 },
-  { key: 'enterEnd', label: 'End Entry', maxTime: 520_000 },
-  { key: 'finish', label: 'Dragon Fight', maxTime: Infinity },
-]
+const segmentDefinitions = [
+  {
+    key: 'overworld',
+    label: 'Overworld',
+    from: null,
+    to: 'enterNether',
+  },
+  {
+    key: 'findBastion',
+    label: 'Find Bastion',
+    from: 'enterNether',
+    to: 'findBastion',
+  },
+  {
+    key: 'bastion',
+    label: 'Bastion',
+    from: 'findBastion',
+    to: 'lootBastion',
+  },
+  {
+    key: 'fortress',
+    label: 'Fortress',
+    from: 'lootBastion',
+    to: 'firstRod',
+  },
+  {
+    key: 'blinding',
+    label: 'Blinding',
+    from: 'firstRod',
+    to: 'blindTravel',
+  },
+  {
+    key: 'stronghold',
+    label: 'Stronghold Nav',
+    from: 'blindTravel',
+    to: 'enterEnd',
+  },
+  {
+    key: 'dragon',
+    label: 'Dragon',
+    from: 'enterEnd',
+    to: 'finish',
+  },
+] as const
+
+type SegmentKey = (typeof segmentDefinitions)[number]['key']
+type SegmentDefinition = (typeof segmentDefinitions)[number]
+type IssueMatch = {
+  match: McsrMatch
+  failedHere: boolean
+  deathCount: number
+}
+type SegmentSample = {
+  match: McsrMatch
+  opponent: { uuid: string; nickname?: string | null } | null
+  segments: Record<SegmentKey, number | null>
+}
 
 const videoLibrary: Record<
   string,
@@ -84,53 +132,131 @@ const videoLibrary: Record<
     title: string
     url: string
     focus: string
+    thumbnail: string
   }
 > = {
   overworld: {
     title: 'Ranked RSG Overworld Fundamentals',
     url: 'https://www.youtube.com/watch?v=egyiA_8FztM',
-    focus: 'Portal building, early food, and faster first structure decisions.',
+    focus: 'Portal building, food routing, and faster first structure decisions.',
+    thumbnail: 'https://img.youtube.com/vi/egyiA_8FztM/hqdefault.jpg',
   },
   bastion: {
     title: 'Ranked RSG Bastion Fundamentals',
     url: 'https://www.youtube.com/watch?v=CRwiJcWWUlY',
-    focus: 'Cleaner bastion entry, routing, piglin control, and avoiding early deaths.',
+    focus: 'Cleaner entry, safer routing, piglin control, and faster exits.',
+    thumbnail: 'https://img.youtube.com/vi/CRwiJcWWUlY/hqdefault.jpg',
   },
   housing: {
-    title: 'How to SPEEDRUN HOUSING',
+    title: 'How to SPEEDRUN Bastions - HOUSING',
     url: 'https://www.youtube.com/watch?v=y7fG2L4FZLU',
     focus: 'Housing route order, gold pathing, and safe exits.',
+    thumbnail: 'https://img.youtube.com/vi/y7fG2L4FZLU/hqdefault.jpg',
   },
   treasure: {
     title: 'How to SPEEDRUN Bastions - TREASURE',
     url: 'https://www.youtube.com/watch?v=u4-KxRhNsUc',
     focus: 'Treasure routing, lava movement, and fast bartering setup.',
+    thumbnail: 'https://img.youtube.com/vi/u4-KxRhNsUc/hqdefault.jpg',
   },
   stables: {
     title: 'How to SPEEDRUN Bastions - STABLES',
     url: 'https://www.youtube.com/watch?v=fjkkLdWYRmY',
     focus: 'Stables pathing, gold blocks, and safer piglin handling.',
+    thumbnail: 'https://img.youtube.com/vi/fjkkLdWYRmY/hqdefault.jpg',
   },
   bridge: {
-    title: 'How to SPEEDRUN BRIDGE',
+    title: 'How to SPEEDRUN Bastions - BRIDGE',
     url: 'https://www.youtube.com/watch?v=FoNy438g1GM',
     focus: 'Bridge route recognition, safe looting, and exit decisions.',
+    thumbnail: 'https://img.youtube.com/vi/FoNy438g1GM/hqdefault.jpg',
   },
   fortress: {
     title: 'Ranked RSG Fortress Guide',
     url: 'https://www.youtube.com/watch?v=JsFcAeBXVpk',
     focus: 'Finding fortress faster, safer blaze fights, and rod consistency.',
+    thumbnail: 'https://img.youtube.com/vi/JsFcAeBXVpk/hqdefault.jpg',
   },
-  blind: {
+  blinding: {
     title: 'Blind Travel and Stronghold Navigation',
     url: 'https://www.youtube.com/watch?v=0N8Wj8hOVKM',
     focus: 'Blind distance, angle control, calculator flow, and stronghold entry.',
+    thumbnail: 'https://img.youtube.com/vi/0N8Wj8hOVKM/hqdefault.jpg',
   },
-  end: {
+  dragon: {
     title: 'How to One Cycle the Ender Dragon',
     url: 'https://www.youtube.com/watch?v=u9UVwwWxN_k',
     focus: 'Fast perch setup, bed timing, and reducing end fight throws.',
+    thumbnail: 'https://img.youtube.com/vi/u9UVwwWxN_k/hqdefault.jpg',
   },
+}
+
+const bastionVideoKeys = ['treasure', 'housing', 'stables', 'bridge'] as const
+
+const rankBands = [
+  { name: 'Iron', min: 0, max: 1599 },
+  { name: 'Gold', min: 1600, max: 1799 },
+  { name: 'Diamond', min: 1800, max: 1999 },
+  { name: 'Netherite', min: 2000, max: 2199 },
+  { name: 'Grandmaster', min: 2200, max: Infinity },
+]
+
+const fallbackBenchmarks: Record<string, Record<SegmentKey, number>> = {
+  Iron: {
+    overworld: 330_000,
+    findBastion: 90_000,
+    bastion: 270_000,
+    fortress: 270_000,
+    blinding: 210_000,
+    stronghold: 300_000,
+    dragon: 180_000,
+  },
+  Gold: {
+    overworld: 230_000,
+    findBastion: 70_000,
+    bastion: 240_000,
+    fortress: 260_000,
+    blinding: 150_000,
+    stronghold: 270_000,
+    dragon: 140_000,
+  },
+  Diamond: {
+    overworld: 190_000,
+    findBastion: 60_000,
+    bastion: 200_000,
+    fortress: 215_000,
+    blinding: 120_000,
+    stronghold: 225_000,
+    dragon: 120_000,
+  },
+  Netherite: {
+    overworld: 165_000,
+    findBastion: 50_000,
+    bastion: 165_000,
+    fortress: 185_000,
+    blinding: 100_000,
+    stronghold: 190_000,
+    dragon: 105_000,
+  },
+  Grandmaster: {
+    overworld: 140_000,
+    findBastion: 45_000,
+    bastion: 140_000,
+    fortress: 160_000,
+    blinding: 85_000,
+    stronghold: 165_000,
+    dragon: 90_000,
+  },
+}
+
+const segmentBounds: Record<SegmentKey, { min: number; max: number }> = {
+  overworld: { min: 45_000, max: 720_000 },
+  findBastion: { min: 10_000, max: 480_000 },
+  bastion: { min: 25_000, max: 600_000 },
+  fortress: { min: 20_000, max: 720_000 },
+  blinding: { min: 15_000, max: 480_000 },
+  stronghold: { min: 30_000, max: 720_000 },
+  dragon: { min: 20_000, max: 420_000 },
 }
 
 function average(values: number[]) {
@@ -146,12 +272,46 @@ function median(values: number[]) {
   return Math.round((sorted[middle - 1] + sorted[middle]) / 2)
 }
 
+function cleanAverage(values: number[]) {
+  if (values.length === 0) return null
+  if (values.length < 4) return average(values)
+  const sorted = [...values].sort((a, b) => a - b)
+  return average(sorted.slice(1, -1))
+}
+
+function cleanBenchmark(values: number[], fallback: number) {
+  if (values.length < 3) return fallback
+  return cleanAverage(values) ?? fallback
+}
+
 function formatSeedType(value?: string | null) {
   if (!value) return 'Unknown'
   return value
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(' ')
+}
+
+function getRankBand(elo: number) {
+  return rankBands.find((band) => elo >= band.min && elo <= band.max) ?? rankBands[0]
+}
+
+function getTargetRankBand(elo: number) {
+  const currentIndex = rankBands.findIndex((band) => elo >= band.min && elo <= band.max)
+  return rankBands[Math.min(Math.max(currentIndex, 0) + 1, rankBands.length - 1)]
+}
+
+function isInRankBand(elo: number | null | undefined, band: (typeof rankBands)[number]) {
+  if (elo == null) return false
+  return elo >= band.min && elo <= band.max
+}
+
+function getSegmentLabel(key: SegmentKey) {
+  return segmentDefinitions.find((segment) => segment.key === key)?.label ?? 'Unknown'
+}
+
+function normalizeVideoKey(value?: string | null) {
+  return value?.toLowerCase().replace(/_/g, '') ?? null
 }
 
 function getPlayerTimelines(match: McsrMatch, uuid: string) {
@@ -164,46 +324,171 @@ function splitTime(timelines: McsrTimeline[], events: readonly string[]) {
   return timelines.find((timeline) => events.includes(timeline.type))?.time ?? null
 }
 
-function extractSplits(match: McsrMatch, uuid: string) {
+function extractMilestones(match: McsrMatch, uuid: string) {
   const timelines = getPlayerTimelines(match, uuid)
   return Object.fromEntries(
-    splitDefinitions.map((split) => [
+    milestoneDefinitions.map((split) => [
       split.key,
       splitTime(timelines, split.events),
     ]),
-  ) as Record<SplitKey, number | null>
+  ) as Record<MilestoneKey, number | null>
 }
 
-function getLastTimelinePhase(match: McsrMatch, uuid: string) {
-  const timelines = getPlayerTimelines(match, uuid)
-  const last = timelines[timelines.length - 1]
-  if (!last) {
-    const time = match.result?.time ?? 0
-    return failurePhaseOrder.find((phase) => time <= phase.maxTime)?.label ?? 'Unknown'
-  }
+function extractSegments(match: McsrMatch, uuid: string) {
+  const milestones = extractMilestones(match, uuid)
 
-  for (let index = failurePhaseOrder.length - 1; index >= 0; index -= 1) {
-    const phase = failurePhaseOrder[index]
-    const split = splitDefinitions.find((item) => item.key === phase.key)
-    if (split && (split.events as readonly string[]).includes(last.type)) {
-      return phase.label
+  return Object.fromEntries(
+    segmentDefinitions.map((segment) => {
+      const end = milestones[segment.to]
+      const start = segment.from ? milestones[segment.from] : 0
+      const value = start != null && end != null && end >= start ? end - start : null
+      return [segment.key, value]
+    }),
+  ) as Record<SegmentKey, number | null>
+}
+
+function validSegmentTime(key: SegmentKey, value: number | null | undefined) {
+  if (value == null) return null
+  const bounds = segmentBounds[key]
+  return value >= bounds.min && value <= bounds.max ? value : null
+}
+
+function validSegmentValues(samples: SegmentSample[], key: SegmentKey) {
+  return samples
+    .map((sample) => validSegmentTime(key, sample.segments[key]))
+    .filter((time): time is number => time != null)
+}
+
+function completedSegment(match: McsrMatch, uuid: string, segment: SegmentDefinition) {
+  const milestones = extractMilestones(match, uuid)
+  const start = segment.from ? milestones[segment.from] : 0
+  const end = milestones[segment.to]
+  return start != null && end != null && end >= start
+}
+
+function failureSegmentKey(match: McsrMatch, uuid: string): SegmentKey | null {
+  if (hasCompleted(match, uuid)) return null
+
+  const timelines = getPlayerTimelines(match, uuid)
+  const lastTime = timelines[timelines.length - 1]?.time ?? match.result?.time ?? null
+  if (lastTime == null) return null
+  const lastDeath = [...timelines]
+    .reverse()
+    .find((timeline) => deathEvents.includes(timeline.type))
+  if (lastDeath) return deathSegmentKey(match, uuid, lastDeath.time)
+
+  const milestones = extractMilestones(match, uuid)
+
+  for (const segment of segmentDefinitions) {
+    const start = segment.from ? milestones[segment.from] : 0
+    const end = milestones[segment.to]
+    if (start != null && end == null) {
+      return segment.key
     }
   }
 
-  const phaseByTime = failurePhaseOrder.find((phase) => last.time <= phase.maxTime)
-  return phaseByTime?.label ?? 'Unknown'
+  return null
 }
 
-function phaseVideoKey(phase: string, bastionType?: string | null) {
-  if (phase.includes('Bastion')) {
-    const normalized = bastionType?.toLowerCase()
-    if (normalized && videoLibrary[normalized]) return normalized
+function deathSegmentKey(match: McsrMatch, uuid: string, time: number): SegmentKey | null {
+  const milestones = extractMilestones(match, uuid)
+  const findBastion = milestones.findBastion
+  const findFortress = milestones.findFortress
+
+  if (findBastion != null && time >= findBastion && (findFortress == null || time < findFortress)) {
     return 'bastion'
   }
-  if (phase.includes('Fortress') || phase.includes('Blaze')) return 'fortress'
-  if (phase.includes('Blind') || phase.includes('Stronghold')) return 'blind'
-  if (phase.includes('End') || phase.includes('Dragon')) return 'end'
-  return 'overworld'
+
+  if (findFortress != null && time >= findFortress && (milestones.firstRod == null || time < milestones.firstRod)) {
+    return 'fortress'
+  }
+
+  for (const segment of segmentDefinitions) {
+    const start = segment.from ? milestones[segment.from] : 0
+    const end = milestones[segment.to]
+
+    if (start != null && time >= start && (end == null || time < end)) {
+      return segment.key
+    }
+  }
+
+  return null
+}
+
+function deathCountsBySegment(match: McsrMatch, uuid: string) {
+  const counts = new Map<SegmentKey, number>()
+
+  for (const timeline of getPlayerTimelines(match, uuid)) {
+    if (!deathEvents.includes(timeline.type)) continue
+    const key = deathSegmentKey(match, uuid, timeline.time)
+    if (!key) continue
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+
+  return counts
+}
+
+function getCompletionTime(match: McsrMatch, uuid: string) {
+  return (
+    match.completions?.find((completion) => completion.uuid === uuid)?.time ??
+    (match.result?.uuid === uuid ? match.result.time : undefined) ??
+    extractMilestones(match, uuid).finish ??
+    null
+  )
+}
+
+function hasCompleted(match: McsrMatch, uuid: string) {
+  return Boolean(getCompletionTime(match, uuid) && !match.forfeited)
+}
+
+function isRankedDuel(match: McsrMatch) {
+  return match.type === 2 && match.players.length >= 2 && !match.decayed
+}
+
+function getMatchPlayer(match: McsrMatch, uuid: string) {
+  return match.players.find((player) => player.uuid === uuid) ?? null
+}
+
+function getOpponent(match: McsrMatch, uuid: string) {
+  return match.players.find((player) => player.uuid !== uuid) ?? null
+}
+
+function getStatsUrl(username: string, matchId: number) {
+  return `/stats?player=${encodeURIComponent(username)}&match=${encodeURIComponent(String(matchId))}`
+}
+
+function getVodUrl(match: McsrMatch, uuid: string) {
+  return match.vod?.find((vod) => vod.uuid === uuid)?.url ?? match.vod?.[0]?.url ?? null
+}
+
+function getBastionIssueType(issueMatches: IssueMatch[]) {
+  const counts = new Map<string, number>()
+
+  for (const issue of issueMatches) {
+    const key = normalizeVideoKey(issue.match.bastionType)
+    if (!key || !videoLibrary[key]) continue
+
+    counts.set(
+      key,
+      (counts.get(key) ?? 0) + (issue.failedHere ? 2 : 0) + issue.deathCount,
+    )
+  }
+
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+}
+
+function phaseFromLastTimeline(match: McsrMatch, uuid: string) {
+  const timelines = getPlayerTimelines(match, uuid)
+  const last = timelines[timelines.length - 1]
+  if (!last) return 'Unknown'
+
+  const milestones = milestoneDefinitions
+    .filter((milestone) =>
+      (milestone.events as readonly string[]).includes(last.type),
+    )
+    .map((milestone) => milestone.label)
+
+  return milestones[0] ?? 'Unknown'
 }
 
 async function fetchMatchDetail(match: McsrMatch) {
@@ -213,6 +498,43 @@ async function fetchMatchDetail(match: McsrMatch) {
     return ((body as { data?: McsrMatch }).data ?? match) as McsrMatch
   } catch {
     return match
+  }
+}
+
+async function fetchTargetBenchmarkSamples(
+  targetTier: (typeof rankBands)[number],
+  playerUuid: string,
+) {
+  try {
+    const body = await fetchAPI(
+      `/matches?count=${BENCHMARK_MATCH_COUNT}&type=2`,
+    )
+    const targets = parseMatchList(body)
+      .filter(isRankedDuel)
+      .filter((match) =>
+        match.players.some(
+          (player) =>
+            player.uuid !== playerUuid && isInRankBand(player.eloRate, targetTier),
+        ),
+      )
+      .slice(0, BENCHMARK_DETAIL_COUNT)
+    const details = await Promise.all(targets.map(fetchMatchDetail))
+
+    return details.flatMap((match) =>
+      match.players
+        .filter(
+          (player) =>
+            player.uuid !== playerUuid && isInRankBand(player.eloRate, targetTier),
+        )
+        .filter((player) => hasCompleted(match, player.uuid))
+        .map((player) => ({
+          match,
+          opponent: player,
+          segments: extractSegments(match, player.uuid),
+        })),
+    ) satisfies SegmentSample[]
+  } catch {
+    return [] satisfies SegmentSample[]
   }
 }
 
@@ -251,7 +573,7 @@ export async function GET(request: Request) {
     ])
 
     const profile = parseUserProfile(profileBody)
-    const matches = parseMatchList(matchesBody).filter((match) => !match.decayed)
+    const matches = parseMatchList(matchesBody).filter(isRankedDuel)
 
     if (!profile) {
       return Response.json(
@@ -260,87 +582,242 @@ export async function GET(request: Request) {
       )
     }
 
-    const completedSummary = matches.find(
-      (match) => !match.forfeited && match.result?.uuid === profile.uuid,
-    )
-    const detailTargets = [
-      ...matches.slice(0, DETAIL_COUNT),
-      ...(completedSummary ? [completedSummary] : []),
-    ]
+    const playerElo = profile.eloRate ?? 0
+    const currentTier = getRankBand(playerElo)
+    const targetTier = getTargetRankBand(playerElo)
+    const detailTargets = matches.slice(0, DETAIL_COUNT)
     const uniqueTargets = [...new Map(detailTargets.map((match) => [match.id, match])).values()]
-    const detailedMatches = await Promise.all(uniqueTargets.map(fetchMatchDetail))
-    const detailMap = new Map(detailedMatches.map((match) => [match.id, match]))
-    const enrichedMatches = matches.map((match) => detailMap.get(match.id) ?? match)
+    const [detailedMatches, targetBenchmarkSegments] = await Promise.all([
+      Promise.all(uniqueTargets.map(fetchMatchDetail)),
+      fetchTargetBenchmarkSamples(targetTier, profile.uuid),
+    ])
+    const analysisMatches = detailedMatches.filter(isRankedDuel)
 
-    const completedMatches = enrichedMatches.filter(
-      (match) => !match.forfeited && match.result?.uuid === profile.uuid,
+    const completedMatches = analysisMatches.filter((match) =>
+      hasCompleted(match, profile.uuid),
     )
-    const forfeits = enrichedMatches.filter((match) => match.forfeited)
     const lastCompleted = completedMatches[0] ?? null
-    const lastCompletedSplits = lastCompleted
-      ? splitDefinitions.map((split) => ({
-          key: split.key,
-          label: split.label,
-          time: extractSplits(lastCompleted, profile.uuid)[split.key],
-        }))
-      : []
+    const playerFailedMatches = analysisMatches.filter(
+      (match) => !hasCompleted(match, profile.uuid),
+    )
 
-    const splitSamples = splitDefinitions.map((split) => {
-      const values = completedMatches
-        .map((match) => extractSplits(match, profile.uuid)[split.key])
-        .filter((time): time is number => time != null)
-      const lastValue = lastCompleted
-        ? extractSplits(lastCompleted, profile.uuid)[split.key]
-        : null
-      const avg = average(values)
+    const playerSegments: SegmentSample[] = completedMatches.map((match) => ({
+      match,
+      opponent: null,
+      segments: extractSegments(match, profile.uuid),
+    }))
+
+    const benchmarkSegments: SegmentSample[] = analysisMatches.flatMap((match) => {
+      const opponent = getOpponent(match, profile.uuid)
+      const player = getMatchPlayer(match, profile.uuid)
+
+      if (!opponent || !player) return []
+      if ((opponent.eloRate ?? 0) <= (player.eloRate ?? profile.eloRate ?? 0)) return []
+      if (!hasCompleted(match, opponent.uuid)) return []
+
+      return [
+        {
+          match,
+          opponent,
+          segments: extractSegments(match, opponent.uuid),
+        },
+      ]
+    })
+
+    const failCounts = new Map<SegmentKey, number>()
+    const deathCounts = new Map<SegmentKey, number>()
+    const issueMatchesBySegment = new Map<SegmentKey, McsrMatch[]>()
+    const addIssueMatch = (key: SegmentKey, match: McsrMatch) => {
+      issueMatchesBySegment.set(key, [
+        ...(issueMatchesBySegment.get(key) ?? []),
+        match,
+      ])
+    }
+
+    for (const match of playerFailedMatches) {
+      const key = failureSegmentKey(match, profile.uuid)
+      if (!key) continue
+      failCounts.set(key, (failCounts.get(key) ?? 0) + 1)
+      addIssueMatch(key, match)
+    }
+
+    for (const match of analysisMatches) {
+      for (const [key, count] of deathCountsBySegment(match, profile.uuid)) {
+        deathCounts.set(key, (deathCounts.get(key) ?? 0) + count)
+        addIssueMatch(key, match)
+      }
+    }
+
+    const splitComparisons = segmentDefinitions.map((segment) => {
+      const playerValues = validSegmentValues(playerSegments, segment.key)
+      const targetBenchmarkValues = validSegmentValues(
+        targetBenchmarkSegments,
+        segment.key,
+      )
+      const opponentBenchmarkValues = validSegmentValues(
+        benchmarkSegments,
+        segment.key,
+      )
+      const fallbackBenchmark =
+        fallbackBenchmarks[targetTier.name]?.[segment.key] ??
+        fallbackBenchmarks.Gold[segment.key]
+      const benchmarkValues =
+        targetBenchmarkValues.length >= 3
+          ? targetBenchmarkValues
+          : opponentBenchmarkValues
+      const playerAverage = cleanAverage(playerValues)
+      const benchmarkAverage = cleanBenchmark(benchmarkValues, fallbackBenchmark)
+      const difference =
+        playerAverage != null && benchmarkAverage != null
+          ? playerAverage - benchmarkAverage
+          : null
+      const gapPercent =
+        difference != null && benchmarkAverage && benchmarkAverage > 0
+          ? difference / benchmarkAverage
+          : null
+      const failCount = failCounts.get(segment.key) ?? 0
+      const deathCount = deathCounts.get(segment.key) ?? 0
+      const lowSamplePenalty =
+        (failCount > 0 || deathCount > 0) && playerValues.length <= 1
+          ? LOW_SAMPLE_PENALTY_MS
+          : 0
+      const score =
+        Math.max(difference ?? 0, 0) +
+        failCount * FAIL_PENALTY_MS +
+        deathCount * DEATH_PENALTY_MS +
+        lowSamplePenalty
 
       return {
-        key: split.key,
-        label: split.label,
-        average: avg,
-        median: median(values),
-        last: lastValue,
-        deltaFromAverage:
-          avg != null && lastValue != null ? Math.round(lastValue - avg) : null,
-        samples: values.length,
+        key: segment.key,
+        label: segment.label,
+        playerAverage,
+        benchmarkAverage,
+        difference,
+        gapPercent,
+        failCount,
+        deathCount,
+        score,
+        samples: playerValues.length,
+        benchmarkSamples: benchmarkValues.length >= 3 ? benchmarkValues.length : 0,
       }
     })
 
-    const failureCounts = new Map<string, number>()
-    for (const match of forfeits) {
-      const phase = getLastTimelinePhase(match, profile.uuid)
-      failureCounts.set(phase, (failureCounts.get(phase) ?? 0) + 1)
-    }
-    const topFailure = [...failureCounts.entries()].sort((a, b) => b[1] - a[1])[0]
-    const weakestSplit = [...splitSamples]
-      .filter((split) => split.deltaFromAverage != null && split.deltaFromAverage > 0)
-      .sort((a, b) => (b.deltaFromAverage ?? 0) - (a.deltaFromAverage ?? 0))[0]
+    const weakestSplit =
+      [...splitComparisons]
+        .filter(
+          (split) =>
+            split.difference != null || split.failCount > 0 || split.deathCount > 0,
+        )
+        .sort((a, b) => b.score - a.score)[0] ?? null
 
-    const primaryPhase = topFailure?.[0] ?? weakestSplit?.label ?? 'Consistency'
-    const primaryVideoKey = phaseVideoKey(primaryPhase, lastCompleted?.bastionType)
-    const secondaryVideoKey =
-      primaryVideoKey === 'bastion' && lastCompleted?.bastionType
-        ? phaseVideoKey('Bastion', lastCompleted.bastionType)
-        : weakestSplit
-          ? phaseVideoKey(weakestSplit.label, lastCompleted?.bastionType)
-          : 'overworld'
-    const recommendations = [
-      videoLibrary[primaryVideoKey],
-      videoLibrary[secondaryVideoKey],
-      videoLibrary.end,
-    ].filter(
-      (video, index, videos) =>
-        video && videos.findIndex((candidate) => candidate.url === video.url) === index,
-    )
+    const weaknessIssueMatches: IssueMatch[] = weakestSplit
+      ? [
+          ...(issueMatchesBySegment.get(weakestSplit.key) ?? []).map((match) => ({
+            match,
+            failedHere: failureSegmentKey(match, profile.uuid) === weakestSplit.key,
+            deathCount:
+              deathCountsBySegment(match, profile.uuid).get(weakestSplit.key) ?? 0,
+          })),
+          ...playerSegments
+            .filter((sample) => sample.segments[weakestSplit.key] != null)
+            .sort(
+              (a, b) =>
+                (b.segments[weakestSplit.key] ?? 0) -
+                (a.segments[weakestSplit.key] ?? 0),
+            )
+            .map((sample) => ({
+              match: sample.match,
+              failedHere: false,
+              deathCount: 0,
+            })),
+        ]
+          .filter(
+            (issue, index, issues) =>
+              issues.findIndex((candidate) => candidate.match.id === issue.match.id) ===
+              index,
+          )
+      : []
+    const weaknessMatches = weakestSplit
+      ? weaknessIssueMatches
+          .map((issue) => {
+            const { match } = issue
+            const playerTime = extractSegments(match, profile.uuid)[
+              weakestSplit.key
+            ]
+            const opponent = getOpponent(match, profile.uuid)
+            const opponentTime = opponent
+              ? extractSegments(match, opponent.uuid)[weakestSplit.key]
+              : null
+            const completed = hasCompleted(match, profile.uuid)
+
+            return {
+              id: match.id,
+              date: match.date,
+              seedType: formatSeedType(match.seedType),
+              bastionType: formatSeedType(match.bastionType),
+              playerTime,
+              opponentTime,
+              opponent: opponent?.nickname ?? null,
+              opponentElo: opponent?.eloRate ?? null,
+              completed,
+              failedHere: issue.failedHere,
+              deathCount: issue.deathCount,
+              winner:
+                match.players.find(
+                  (player) => player.uuid === match.result?.uuid,
+                )?.nickname ?? null,
+              statsUrl: getStatsUrl(profile.nickname, match.id),
+              vodUrl: getVodUrl(match, profile.uuid),
+            }
+          })
+          .sort((a, b) => {
+            const aIssueScore = (a.failedHere ? 1 : 0) + a.deathCount
+            const bIssueScore = (b.failedHere ? 1 : 0) + b.deathCount
+            if (aIssueScore !== bIssueScore) return bIssueScore - aIssueScore
+            return (b.playerTime ?? 0) - (a.playerTime ?? 0)
+          })
+          .slice(0, 10)
+      : []
+
+    const forfeitCounts = new Map<string, number>()
+    for (const match of playerFailedMatches) {
+      const failKey = failureSegmentKey(match, profile.uuid)
+      const phase = failKey ? getSegmentLabel(failKey) : phaseFromLastTimeline(match, profile.uuid)
+      forfeitCounts.set(phase, (forfeitCounts.get(phase) ?? 0) + 1)
+    }
 
     const completedTimes = completedMatches
-      .map((match) => match.result?.time)
+      .map((match) => getCompletionTime(match, profile.uuid))
       .filter((time): time is number => time != null)
     const recentSeeds = new Map<string, number>()
-    for (const match of enrichedMatches) {
+    for (const match of analysisMatches) {
       const label = `${formatSeedType(match.seedType)} / ${formatSeedType(match.bastionType)}`
       recentSeeds.set(label, (recentSeeds.get(label) ?? 0) + 1)
     }
+
+    const issueBastionKey =
+      weakestSplit?.key === 'bastion'
+        ? getBastionIssueType(weaknessIssueMatches)
+        : null
+    const bestBastion =
+      issueBastionKey ??
+      (lastCompleted ? normalizeVideoKey(lastCompleted.bastionType) : null)
+
+    const recommendedKeys = [
+      weakestSplit?.key === 'bastion' ? bestBastion : weakestSplit?.key,
+      weakestSplit?.key === 'bastion' ? 'bastion' : null,
+      ...bastionVideoKeys,
+      'fortress',
+      'blinding',
+      'dragon',
+    ].filter(Boolean) as string[]
+    const recommendations = recommendedKeys
+      .map((key) => videoLibrary[key])
+      .filter(
+        (video, index, videos) =>
+          video && videos.findIndex((candidate) => candidate.url === video.url) === index,
+      )
+      .slice(0, 4)
 
     return Response.json(
       {
@@ -348,57 +825,110 @@ export async function GET(request: Request) {
           player: {
             uuid: profile.uuid,
             username: profile.nickname,
-            elo: profile.eloRate ?? 0,
+            elo: playerElo,
             rank: profile.eloRank ?? 0,
             country: profile.country?.toUpperCase() ?? 'N/A',
           },
           sample: {
-            matches: enrichedMatches.length,
+            matches: analysisMatches.length,
             completed: completedMatches.length,
-            forfeits: forfeits.length,
+            forfeits: analysisMatches.filter((match) => match.forfeited).length,
             detailMatches: detailedMatches.length,
+            benchmarkSamples: benchmarkSegments.length,
+            targetBenchmarkSamples: targetBenchmarkSegments.length,
+          },
+          comparison: {
+            currentTier: currentTier.name,
+            targetTier: targetTier.name,
+            benchmarkLabel:
+              targetBenchmarkSegments.length > 0
+                ? `recent ${targetTier.name} players`
+                : benchmarkSegments.length > 0
+                  ? `stronger recent opponents (${targetTier.name} target)`
+                  : `${targetTier.name} baseline`,
+            splitComparisons,
           },
           overview: {
             completionRate:
-              enrichedMatches.length > 0
-                ? completedMatches.length / enrichedMatches.length
+              analysisMatches.length > 0
+                ? completedMatches.length / analysisMatches.length
                 : 0,
             averageCompletion: average(completedTimes),
             bestCompletion: completedTimes.length > 0 ? Math.min(...completedTimes) : null,
             mostCommonSeed:
               [...recentSeeds.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'N/A',
-            primaryWeakness: primaryPhase,
-            failureCount: topFailure?.[1] ?? 0,
+            primaryWeakness: weakestSplit?.label ?? 'Consistency',
+            failureCount: (weakestSplit?.failCount ?? 0) + (weakestSplit?.deathCount ?? 0),
           },
+          weakness: weakestSplit
+            ? {
+                key: weakestSplit.key,
+                label: weakestSplit.label,
+                difference: weakestSplit.difference,
+                gapPercent: weakestSplit.gapPercent,
+                failCount: weakestSplit.failCount,
+                deathCount: weakestSplit.deathCount,
+                bastionType:
+                  weakestSplit.key === 'bastion' && issueBastionKey
+                    ? formatSeedType(issueBastionKey)
+                    : null,
+                matches: weaknessMatches,
+              }
+            : null,
           lastCompleted: lastCompleted
             ? {
                 id: lastCompleted.id,
                 date: lastCompleted.date,
-                time: lastCompleted.result?.time ?? null,
+                time: getCompletionTime(lastCompleted, profile.uuid),
                 seedType: formatSeedType(lastCompleted.seedType),
                 bastionType: formatSeedType(lastCompleted.bastionType),
-                statsUrl: `https://mcsrranked.com/stats/${encodeURIComponent(
-                  profile.nickname,
-                )}/${lastCompleted.id}`,
-                vodUrl: lastCompleted.vod?.[0]?.url ?? null,
-                splits: lastCompletedSplits,
+                statsUrl: getStatsUrl(profile.nickname, lastCompleted.id),
+                vodUrl: getVodUrl(lastCompleted, profile.uuid),
+                splits: segmentDefinitions.map((segment) => ({
+                  key: segment.key,
+                  label: segment.label,
+                  time: extractSegments(lastCompleted, profile.uuid)[segment.key],
+                })),
               }
             : null,
-          splitSamples,
-          failures: [...failureCounts.entries()]
+          splitSamples: splitComparisons.map((split) => ({
+            key: split.key,
+            label: split.label,
+            average: split.playerAverage,
+            median: median(
+              playerSegments
+                .map((sample) => sample.segments[split.key as SegmentKey])
+                .filter((time): time is number => time != null),
+            ),
+            last: lastCompleted
+              ? extractSegments(lastCompleted, profile.uuid)[split.key as SegmentKey]
+              : null,
+            deltaFromAverage: split.difference,
+            samples: split.samples,
+          })),
+          failures: [...forfeitCounts.entries()]
             .sort((a, b) => b[1] - a[1])
             .map(([phase, count]) => ({ phase, count })),
           recommendations,
-          recentMatches: enrichedMatches.slice(0, 8).map((match) => ({
-            id: match.id,
-            date: match.date,
-            time: match.result?.time ?? null,
-            completed: !match.forfeited && match.result?.uuid === profile.uuid,
-            forfeited: Boolean(match.forfeited),
-            phase: match.forfeited ? getLastTimelinePhase(match, profile.uuid) : 'Completed',
-            seedType: formatSeedType(match.seedType),
-            bastionType: formatSeedType(match.bastionType),
-          })),
+          recentMatches: analysisMatches.slice(0, 8).map((match) => {
+            const failKey = failureSegmentKey(match, profile.uuid)
+            const completed = hasCompleted(match, profile.uuid)
+
+            return {
+              id: match.id,
+              date: match.date,
+              time: getCompletionTime(match, profile.uuid) ?? match.result?.time ?? null,
+              completed,
+              forfeited: Boolean(match.forfeited),
+              phase: completed
+                ? 'Completed'
+                : failKey
+                  ? `${getSegmentLabel(failKey)} fail`
+                  : 'Incomplete',
+              seedType: formatSeedType(match.seedType),
+              bastionType: formatSeedType(match.bastionType),
+            }
+          }),
           formatted: {
             averageCompletion: formatMatchTime(average(completedTimes) ?? undefined) ?? 'N/A',
             bestCompletion: formatMatchTime(
@@ -409,7 +939,7 @@ export async function GET(request: Request) {
       },
       { headers },
     )
-  } catch (error) {
+  } catch {
     return Response.json(
       { error: 'Could not analyze that player.' },
       { status: 500, headers },

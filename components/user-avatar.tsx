@@ -31,7 +31,7 @@ export function UserAvatar({
       width={size}
       height={size}
       className={cn(
-        'rounded-full object-cover bg-muted image-rendering-pixelated',
+        'rounded-md border border-white/10 bg-muted object-cover image-rendering-pixelated shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]',
         className,
       )}
       priority={priority}

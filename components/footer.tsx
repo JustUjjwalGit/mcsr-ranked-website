@@ -2,7 +2,7 @@ import { SiteLogo } from '@/components/site-logo'
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-black/40 backdrop-blur-sm">
+    <footer className="border-t border-white/10 bg-background/60 backdrop-blur-2xl">
       <div className="mx-auto max-w-7xl px-3 py-8 sm:px-4 sm:py-12">
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
           {/* Brand */}
@@ -20,9 +20,6 @@ export function Footer() {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-foreground">Navigation</h4>
             <nav className="space-y-2 text-sm">
-              <a href="/leaderboards" className="block text-muted-foreground hover:text-foreground transition">
-                Leaderboards
-              </a>
               <a href="/players" className="block text-muted-foreground hover:text-foreground transition">
                 Players
               </a>

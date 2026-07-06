@@ -115,6 +115,15 @@ export async function GET(request: Request) {
             eloValues.reduce((sum, elo) => sum + elo, 0) / eloValues.length,
           )
         : 0
+    const rankValues = users
+      .map((u) => u.eloRank)
+      .filter((rank): rank is number => rank != null)
+    const averageRank =
+      rankValues.length > 0
+        ? Math.round(
+            rankValues.reduce((sum, rank) => sum + rank, 0) / rankValues.length,
+          )
+        : 0
 
     const countryCounts = new Map<string, number>()
     for (const user of users) {
@@ -164,7 +173,9 @@ export async function GET(request: Request) {
       {
         stats: {
           leaderboardPlayers: users.length,
+          leaderboardSample: users.length,
           averageElo,
+          averageRank,
           highestElo: topPlayer?.elo ?? 0,
           topCountry,
           topPlayer,

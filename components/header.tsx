@@ -9,7 +9,6 @@ import { ThemeSwitcher } from '@/components/theme-switcher'
 import { saveRecentSearch } from '@/lib/player-memory'
 
 const navLinks = [
-  { href: '/leaderboards', label: 'Leaderboards' },
   { href: '/players', label: 'Players' },
   { href: '/matches', label: 'Matches' },
   { href: '/stats', label: 'Stats' },
@@ -33,7 +32,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-primary/30 bg-black/65 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-background/72 shadow-[0_10px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-3 sm:px-4 md:h-20">
         {/* Logo */}
         <Link
@@ -102,7 +101,7 @@ export function Header() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-primary/20 bg-black/85 px-3 py-3 shadow-xl shadow-black/40 backdrop-blur-md md:hidden">
+        <div className="border-t border-white/10 bg-background/92 px-3 py-3 shadow-xl shadow-black/40 backdrop-blur-2xl md:hidden">
           <div className="mx-auto max-w-7xl space-y-3">
             <form onSubmit={handleSearch} className="flex gap-2">
               <div className="relative min-w-0 flex-1">

@@ -220,7 +220,7 @@ export function mapUserToProfile(body: unknown) {
 }
 
 export function getMatchStatsUrl(nickname: string, matchId: number | string) {
-  return `https://mcsrranked.com/stats/${encodeURIComponent(nickname)}/${matchId}`
+  return `/stats?player=${encodeURIComponent(nickname)}&match=${encodeURIComponent(String(matchId))}`
 }
 
 function formatSeedType(value?: string | null) {
