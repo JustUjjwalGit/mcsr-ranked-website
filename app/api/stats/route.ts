@@ -10,6 +10,13 @@ import {
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
 
 const RECENT_MATCH_COUNT = 100
+const tierDefinitions = [
+  { tier: 'Iron', min: -Infinity, max: 1599 },
+  { tier: 'Gold', min: 1600, max: 1799 },
+  { tier: 'Diamond', min: 1800, max: 1999 },
+  { tier: 'Netherite', min: 2000, max: 2199 },
+  { tier: 'Grandmaster', min: 2200, max: Infinity },
+] as const
 
 function formatDate(timestamp: number) {
   return new Date(timestamp * 1000).toLocaleDateString()
@@ -84,16 +91,20 @@ export async function GET(request: Request) {
       ? `/leaderboard?season=${requestedSeason}`
       : '/leaderboard'
 
-    const [liveBody, leaderboardBody, matchesBody] = await Promise.all([
+    const [liveResult, leaderboardResult, matchesResult] = await Promise.allSettled([
       fetchAPI('/live'),
       fetchAPI(leaderboardEndpoint),
       fetchAPI(`/matches?${params.toString()}`),
     ])
+    const liveBody = liveResult.status === 'fulfilled' ? liveResult.value : null
+    const leaderboardBody =
+      leaderboardResult.status === 'fulfilled' ? leaderboardResult.value : null
+    const matchesBody = matchesResult.status === 'fulfilled' ? matchesResult.value : null
 
-    if (isApiError(liveBody) && isApiError(leaderboardBody) && isApiError(matchesBody)) {
+    if (isApiError(leaderboardBody)) {
       return Response.json(
-        { error: 'Failed to fetch stats' },
-        { status: 500, headers },
+        { error: 'Leaderboard data is currently unavailable.' },
+        { status: 502, headers },
       )
     }
 
@@ -124,6 +135,30 @@ export async function GET(request: Request) {
             rankValues.reduce((sum, rank) => sum + rank, 0) / rankValues.length,
           )
         : 0
+    const rankDistribution = tierDefinitions.map((definition) => {
+      const players = eloValues.filter(
+        (elo) => elo >= definition.min && elo <= definition.max,
+      ).length
+      return {
+        tier: definition.tier,
+        players,
+        percent: users.length > 0 ? players / users.length : 0,
+      }
+    })
+    const bucketSize = 100
+    const firstBucket =
+      eloValues.length > 0 ? Math.floor(Math.min(...eloValues) / bucketSize) * bucketSize : 0
+    const lastBucket =
+      eloValues.length > 0 ? Math.floor(Math.max(...eloValues) / bucketSize) * bucketSize : 0
+    const eloHistogram = []
+    for (let start = firstBucket; start <= lastBucket; start += bucketSize) {
+      eloHistogram.push({
+        label: `${start}-${start + bucketSize - 1}`,
+        start,
+        end: start + bucketSize - 1,
+        players: eloValues.filter((elo) => elo >= start && elo < start + bucketSize).length,
+      })
+    }
 
     const countryCounts = new Map<string, number>()
     for (const user of users) {
@@ -184,6 +219,10 @@ export async function GET(request: Request) {
           topCountries,
           topGainers: buildEloMovers(recentMatches, 'up'),
           topLosers: buildEloMovers(recentMatches, 'down'),
+          rankDistribution,
+          eloHistogram,
+          lastUpdated: new Date().toISOString(),
+          distributionLabel: 'Players in the loaded official leaderboard',
           seasonInfo,
         },
       },

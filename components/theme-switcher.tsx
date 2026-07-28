@@ -221,7 +221,7 @@ export function ThemeSwitcher() {
                     <input
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Search 100 presets..."
+                      placeholder="Search curated themes..."
                       className="h-10 w-full rounded border border-border bg-input pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -244,10 +244,12 @@ export function ThemeSwitcher() {
                             : 'border-border bg-muted/30',
                         )}
                       >
-                        <div
-                          className="h-12 rounded border border-border"
-                          style={{ background: theme.backgroundImage }}
-                        />
+                        <div className="grid h-12 grid-cols-4 overflow-hidden rounded border border-border">
+                          <span style={{ backgroundColor: theme.colors.background }} />
+                          <span style={{ backgroundColor: theme.colors.card }} />
+                          <span style={{ backgroundColor: theme.colors.foreground }} />
+                          <span style={{ backgroundColor: theme.colors.primary }} />
+                        </div>
                         <div className="mt-3 flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-foreground">

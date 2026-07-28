@@ -1,9 +1,29 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Download, ExternalLink, Info } from 'lucide-react'
 import { toPng } from 'html-to-image'
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { UserAvatar } from '@/components/user-avatar'
@@ -17,15 +37,48 @@ import {
 } from './format'
 import type { PlayerDashboard } from './types'
 
-const chartColors = ['#22d3ee', '#34d399', '#f59e0b', '#fb7185', '#a78bfa', '#60a5fa']
+const chartColors = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--info)',
+]
+
+type TooltipEntry<T> = {
+  payload?: T
+  value?: number | string
+  name?: string
+  color?: string
+}
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => setReduced(query.matches)
+    sync()
+    query.addEventListener('change', sync)
+    return () => query.removeEventListener('change', sync)
+  }, [])
+  return reduced
+}
 
 function countryFlag(country: string | null) {
   if (!country || !/^[A-Z]{2}$/.test(country)) return null
-
   return country
     .split('')
     .map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)))
     .join('')
+}
+
+function ChartTooltipShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="max-w-64 rounded-md border border-border bg-[var(--chart-tooltip)] p-3 text-xs text-foreground shadow-xl">
+      {children}
+    </div>
+  )
 }
 
 function StatBadge({
@@ -36,28 +89,27 @@ function StatBadge({
 }: {
   label: string
   value: string | number
-  tone?: 'default' | 'good' | 'bad' | 'primary'
+  tone?: 'default' | 'good' | 'bad' | 'warning' | 'primary'
   title?: string
 }) {
-  const valueClass =
-    tone === 'good'
-      ? 'text-emerald-300'
-      : tone === 'bad'
-        ? 'text-rose-300'
-        : tone === 'primary'
-          ? 'text-cyan-300'
-          : 'text-foreground'
+  const valueClass = {
+    default: 'text-foreground',
+    good: 'text-success',
+    bad: 'text-danger',
+    warning: 'text-warning',
+    primary: 'text-primary',
+  }[tone]
 
   return (
     <div
       title={title}
-      className="min-w-0 border border-white/10 bg-background/45 px-3 py-2"
+      className="min-w-0 rounded-md border border-border bg-[var(--neutral-performance-bg)] px-3 py-2"
     >
       <div className="flex items-center gap-1 text-xs text-muted-foreground">
         <span>{label}</span>
-        {title && <Info className="h-3 w-3" aria-hidden="true" />}
+        {title ? <Info className="h-3 w-3" aria-hidden="true" /> : null}
       </div>
-      <p className={cn('mt-1 truncate font-mono text-sm font-semibold', valueClass)}>
+      <p className={cn('mt-1 truncate font-mono text-sm font-semibold tabular-nums', valueClass)}>
         {value}
       </p>
     </div>
@@ -67,19 +119,22 @@ function StatBadge({
 function ChartCard({
   title,
   sample,
+  action,
   children,
 }: {
   title: string
   sample: string
+  action?: ReactNode
   children: ReactNode
 }) {
   return (
-    <Card className="rounded-md border-border/90 bg-card/92 p-4" data-stat-card>
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <h3 className="font-mono text-sm uppercase text-cyan-300">{title}</h3>
+    <Card className="min-w-0 rounded-lg border-border bg-card/95 p-4" data-stat-card>
+      <div className="mb-3 flex min-h-12 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="font-mono text-sm font-semibold uppercase text-primary">{title}</h3>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">{sample}</p>
         </div>
+        {action}
       </div>
       {children}
     </Card>
@@ -88,7 +143,7 @@ function ChartCard({
 
 function EmptyChart({ message }: { message: string }) {
   return (
-    <div className="flex h-56 items-center justify-center border border-dashed border-border bg-background/35 p-6 text-center text-sm text-muted-foreground">
+    <div className="flex h-64 items-center justify-center rounded-md border border-dashed border-border bg-[var(--neutral-performance-bg)] p-6 text-center text-sm text-muted-foreground">
       {message}
     </div>
   )
@@ -99,86 +154,80 @@ function PlayerOverview({ dashboard }: { dashboard: PlayerDashboard }) {
   const flag = countryFlag(overview.country)
 
   return (
-    <Card className="rounded-md border-cyan-400/35 bg-card/95 p-4 shadow-[0_0_48px_rgba(34,211,238,0.09)] sm:p-5">
-      <div className="grid gap-5 lg:grid-cols-[auto_1fr]">
-        <div className="flex items-center gap-4">
+    <Card className="rounded-lg border-primary/35 bg-card/95 p-4 shadow-[0_0_44px_color-mix(in_srgb,var(--primary),transparent_92%)] sm:p-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(460px,1fr)] lg:items-center">
+        <div className="flex min-w-0 items-start gap-4">
           <UserAvatar
             uuid={overview.uuid}
             username={overview.username}
-            size={86}
-            className="h-20 w-20 rounded-md border-cyan-400/45 sm:h-[86px] sm:w-[86px]"
+            size={88}
+            className="h-[88px] w-[88px] shrink-0 rounded-md border border-primary/45"
             priority
           />
-          <div className="min-w-0">
+          <div className="min-w-0 pt-0.5">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <h2 className="break-words text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+              <h2 className="break-words text-2xl font-bold leading-7 text-foreground">
                 {overview.username}
               </h2>
-              <span className="h-6 rounded border border-primary/30 bg-primary/10 px-2 py-1 font-mono text-[11px] leading-none text-primary">
+              <span className="h-6 rounded border border-primary/35 bg-primary/10 px-2 font-mono text-[11px] leading-6 text-primary">
                 ID {overview.playerId.slice(0, 8)}
               </span>
-              {overview.country && (
-                <span className="h-6 rounded border border-white/10 bg-background/60 px-2 py-1 font-mono text-[11px] leading-none text-muted-foreground">
-                  {flag ? `${flag} ` : ''}
-                  {overview.country}
+              {overview.country ? (
+                <span className="h-6 rounded border border-border bg-background/55 px-2 font-mono text-[11px] leading-6 text-muted-foreground">
+                  {flag ? `${flag} ` : ''}{overview.country}
                 </span>
-              )}
+              ) : null}
             </div>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">
+            <p className="mt-1.5 text-sm leading-5 text-muted-foreground">
               {overview.socials.length > 0
-                ? overview.socials
-                    .map((social) => `${social.service}: ${social.name}`)
-                    .join(' · ')
+                ? overview.socials.map((social) => `${social.service}: ${social.name}`).join(' · ')
                 : 'No socials connected'}
             </p>
             <p className="mt-1 font-mono text-xs leading-5 text-muted-foreground">
-              Last played {formatRelativeTime(overview.lastRanked)} · Rank #
-              {overview.rank ?? '—'}
+              Last played {formatRelativeTime(overview.lastRanked)} · Rank #{overview.rank ?? '—'} · {dashboard.skillBand}
             </p>
+            <div className="mt-2.5 grid max-w-xs grid-cols-3 gap-1.5" aria-label="Loaded match record">
+              <div className="rounded border border-success/25 bg-[var(--positive-performance-bg)] px-2 py-1.5 text-center font-mono text-sm font-bold text-success">
+                {overview.wins}W
+              </div>
+              <div className="rounded border border-danger/25 bg-[var(--negative-performance-bg)] px-2 py-1.5 text-center font-mono text-sm font-bold text-danger">
+                {overview.losses}L
+              </div>
+              <div className="rounded border border-warning/25 bg-[var(--neutral-performance-bg)] px-2 py-1.5 text-center font-mono text-sm font-bold text-warning">
+                {overview.draws}D
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="hidden flex-wrap gap-2 lg:flex">
-            {overview.socials.length > 0 ? (
-              overview.socials.map((social) =>
+        <div className="space-y-3">
+          {overview.socials.length > 0 ? (
+            <div className="hidden flex-wrap gap-2 lg:flex">
+              {overview.socials.map((social) =>
                 social.url ? (
                   <a
                     key={`${social.service}-${social.name}`}
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 border border-white/10 bg-background/50 px-2 py-1 text-xs text-muted-foreground hover:border-primary hover:text-foreground"
+                    className="inline-flex items-center gap-1 rounded border border-border bg-background/45 px-2 py-1 text-xs text-muted-foreground transition hover:border-primary hover:text-foreground"
                   >
                     {social.service}: {social.name}
                     <ExternalLink className="h-3 w-3" />
                   </a>
-                ) : (
-                  <span
-                    key={`${social.service}-${social.name}`}
-                    className="border border-white/10 bg-background/50 px-2 py-1 text-xs text-muted-foreground"
-                  >
-                    {social.service}: {social.name}
-                  </span>
-                ),
-              )
-            ) : (
-              <span className="border border-white/10 bg-background/50 px-2 py-1 text-xs text-muted-foreground">
-                No socials connected
-              </span>
-            )}
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                ) : null,
+              )}
+            </div>
+          ) : null}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <StatBadge label="Current Elo" value={overview.elo?.toLocaleString() ?? '—'} tone="primary" />
             <StatBadge label="Tier" value={overview.tier} tone="primary" />
-            <StatBadge label="Wins" value={overview.wins} tone="good" />
-            <StatBadge label="Losses" value={overview.losses} tone="bad" />
-            {overview.draws > 0 && <StatBadge label="Draws" value={overview.draws} />}
             <StatBadge label="PB" value={formatDuration(overview.pb)} tone="good" />
             <StatBadge label="Avg completion" value={formatDuration(overview.averageCompletion)} />
-            <StatBadge label="Win rate" value={formatPercent(overview.winRate)} tone="good" title="Wins divided by decided ranked matches in the profile statistics." />
-            <StatBadge label="Forfeit rate" value={formatPercent(overview.forfeitRate)} tone="bad" title="Forfeits divided by ranked matches in the profile statistics." />
+            <StatBadge label="Win rate" value={formatPercent(overview.winRate)} tone={(overview.winRate ?? 0) >= 0.55 ? 'good' : 'default'} title="Wins divided by decided matches in the loaded sample." />
+            <StatBadge label="Forfeit rate" value={formatPercent(overview.forfeitRate)} tone={(overview.forfeitRate ?? 0) >= 0.25 ? 'bad' : 'default'} title="Forfeits divided by all matches in the loaded sample." />
+            <StatBadge label="Rank" value={overview.rank ? `#${overview.rank}` : '—'} />
+            <StatBadge label="Sample" value={`${dashboard.loadedMatches} matches`} />
           </div>
         </div>
       </div>
@@ -186,319 +235,345 @@ function PlayerOverview({ dashboard }: { dashboard: PlayerDashboard }) {
   )
 }
 
-function EloHistoryChart({ points }: { points: PlayerDashboard['eloHistory'] }) {
-  const numericPoints = points.filter((point) => point.elo != null)
-  if (numericPoints.length === 0) {
-    return <EmptyChart message="No recorded Elo changes were available in the loaded matches." />
-  }
-
-  const width = 720
-  const height = 260
-  const padding = { top: 24, right: 22, bottom: 42, left: 54 }
-  const values = numericPoints.map((point) => point.elo ?? 0)
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const spread = Math.max(max - min, 20)
-  const yMin = min - spread * 0.15
-  const yMax = max + spread * 0.15
-  const xStep =
-    numericPoints.length > 1
-      ? (width - padding.left - padding.right) / (numericPoints.length - 1)
-      : 0
-  const plotHeight = height - padding.top - padding.bottom
-
-  const coordinates = numericPoints.map((point, index) => {
-    const x =
-      numericPoints.length === 1
-        ? width / 2
-        : padding.left + index * xStep
-    const y =
-      padding.top +
-      ((yMax - (point.elo ?? yMin)) / (yMax - yMin || 1)) * plotHeight
-
-    return { ...point, x, y }
-  })
-  const path = coordinates
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-    .join(' ')
-
+function EloTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: readonly TooltipEntry<PlayerDashboard['eloHistory'][number]>[]
+}) {
+  const point = payload?.[0]?.payload
+  if (!active || !point) return null
   return (
-    <svg
-      role="img"
-      aria-label="Elo progression over loaded matches"
-      viewBox={`0 0 ${width} ${height}`}
-      className="h-64 w-full overflow-visible"
-      preserveAspectRatio="none"
-    >
-      {[0, 0.5, 1].map((tick) => {
-        const y = padding.top + tick * plotHeight
-        const elo = Math.round(yMax - tick * (yMax - yMin))
-        return (
-          <g key={tick}>
-            <line x1={padding.left} x2={width - padding.right} y1={y} y2={y} stroke="rgba(255,255,255,0.1)" />
-            <text x={padding.left - 10} y={y + 4} textAnchor="end" className="fill-muted-foreground text-[11px]">
-              {elo}
-            </text>
-          </g>
-        )
-      })}
-      <path
-        d={path}
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="3"
-        vectorEffect="non-scaling-stroke"
-        className="dashboard-line"
-        pathLength={1}
-      />
-      {coordinates.map((point, index) => (
-        <g key={point.matchId}>
-          <circle
-            cx={point.x}
-            cy={point.y}
-            r={numericPoints.length === 1 ? 5 : 3.5}
-            fill="var(--primary)"
-            className="chart-point"
-            tabIndex={0}
-          >
-            <title>
-              {formatDate(point.date)} vs {point.opponent ?? 'Unknown'}: {point.elo} Elo
-              {point.change != null ? ` (${point.change > 0 ? '+' : ''}${point.change})` : ''}
-            </title>
-          </circle>
-          {(index === 0 || index === coordinates.length - 1) && (
-            <text x={point.x} y={height - 16} textAnchor={index === 0 ? 'start' : 'end'} className="fill-muted-foreground text-[11px]">
-              {formatDate(point.date)}
-            </text>
+    <ChartTooltipShell>
+      <p className="font-semibold">{formatDate(point.date)} · Match #{point.matchId}</p>
+      <p className="mt-1 font-mono text-primary">{point.elo?.toLocaleString()} Elo</p>
+      <p className="mt-1 text-muted-foreground">
+        {point.result ?? 'Unknown result'} vs {point.opponent ?? 'Unknown'}
+        {point.change != null ? ` · ${point.change > 0 ? '+' : ''}${point.change}` : ''}
+      </p>
+    </ChartTooltipShell>
+  )
+}
+
+function EloHistoryCard({ points }: { points: PlayerDashboard['eloHistory'] }) {
+  const [mode, setMode] = useState<'line' | 'area'>('line')
+  const reducedMotion = useReducedMotion()
+  const numericPoints = points.filter((point) => point.elo != null)
+  const chartProps = {
+    data: numericPoints,
+    margin: { top: 12, right: 12, left: 0, bottom: 8 },
+  }
+  const controls = (
+    <div className="flex rounded-md border border-border bg-background/50 p-0.5" aria-label="Elo chart type">
+      {(['line', 'area'] as const).map((item) => (
+        <button
+          key={item}
+          type="button"
+          onClick={() => setMode(item)}
+          aria-pressed={mode === item}
+          className={cn(
+            'h-7 rounded px-2 text-xs capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            mode === item ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-[var(--hover)]',
           )}
-        </g>
+        >
+          {item}
+        </button>
       ))}
-    </svg>
+    </div>
+  )
+  if (numericPoints.length === 0) {
+    return (
+      <ChartCard title="Elo History" sample="0 Elo records" action={controls}>
+        <EmptyChart message="No recorded Elo values were available in the loaded matches." />
+      </ChartCard>
+    )
+  }
+  const common = (
+    <>
+      <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 4" vertical={false} />
+      <XAxis
+        dataKey="date"
+        tickFormatter={(value: number) => formatDate(value)}
+        stroke="var(--chart-axis)"
+        tick={{ fontSize: 11 }}
+        minTickGap={36}
+      />
+      <YAxis
+        domain={['dataMin - 20', 'dataMax + 20']}
+        stroke="var(--chart-axis)"
+        tick={{ fontSize: 11 }}
+        width={44}
+      />
+      <Tooltip content={<EloTooltip />} cursor={{ stroke: 'var(--chart-grid)' }} />
+    </>
+  )
+  const seriesProps = {
+    dataKey: 'elo',
+    stroke: 'var(--chart-1)',
+    strokeWidth: 2.5,
+    isAnimationActive: !reducedMotion,
+    animationDuration: 700,
+    dot: { r: numericPoints.length === 1 ? 5 : 3, fill: 'var(--chart-1)', strokeWidth: 0 },
+    activeDot: { r: 6, fill: 'var(--chart-1)', stroke: 'var(--card)', strokeWidth: 2 },
+  }
+  return (
+    <ChartCard title="Elo History" sample={`${numericPoints.length} Elo records`} action={controls}>
+      <div className="h-64 min-w-0">
+        <ResponsiveContainer width="100%" height="100%">
+          {mode === 'line' ? (
+            <LineChart {...chartProps}>
+              {common}
+              <Line type="linear" {...seriesProps} connectNulls={false} />
+            </LineChart>
+          ) : (
+            <AreaChart {...chartProps}>
+              <defs>
+                <linearGradient id="elo-area-gradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.42} />
+                  <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0.03} />
+                </linearGradient>
+              </defs>
+              {common}
+              <Area type="linear" {...seriesProps} fill="url(#elo-area-gradient)" connectNulls={false} />
+            </AreaChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
+  )
+}
+
+function RadarTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: readonly TooltipEntry<PlayerDashboard['splitPerformance'][number]>[]
+}) {
+  const row = payload?.[0]?.payload
+  if (!active || !row) return null
+  const difference =
+    row.average != null && row.benchmark != null ? row.average - row.benchmark : null
+  return (
+    <ChartTooltipShell>
+      <p className="font-semibold">{row.label}</p>
+      <p className="mt-1 font-mono text-primary">{row.score ?? '—'} performance score</p>
+      <p className="mt-1 text-muted-foreground">Average {formatDuration(row.average)}</p>
+      <p className="text-muted-foreground">Benchmark difference {formatSignedDuration(difference)}</p>
+      <p className="text-muted-foreground">{row.samples} usable {row.samples === 1 ? 'match' : 'matches'}</p>
+    </ChartTooltipShell>
   )
 }
 
 function SplitPerformanceRadar({ rows }: { rows: PlayerDashboard['splitPerformance'] }) {
+  const reducedMotion = useReducedMotion()
   const values = rows.filter((row) => row.score != null)
   if (values.length < 3) {
-    return <EmptyChart message="At least three splits with valid averages are needed for the radar chart." />
+    return <EmptyChart message="At least three segments with valid player and benchmark averages are required." />
   }
-
-  const size = 280
-  const center = size / 2
-  const radius = 94
-  const angleStep = (Math.PI * 2) / rows.length
-  const pointFor = (index: number, score: number) => {
-    const angle = -Math.PI / 2 + index * angleStep
-    const distance = radius * (score / 100)
-    return {
-      x: center + Math.cos(angle) * distance,
-      y: center + Math.sin(angle) * distance,
-    }
-  }
-  const polygon = rows
-    .map((row, index) => pointFor(index, row.score ?? 0))
-    .map((point) => `${point.x},${point.y}`)
-    .join(' ')
-
   return (
-    <svg role="img" aria-label="Split performance radar" viewBox={`0 0 ${size} ${size}`} className="mx-auto h-72 w-full max-w-md">
-      {[0.33, 0.66, 1].map((scale) => (
-        <polygon
-          key={scale}
-          points={rows.map((_, index) => {
-            const point = pointFor(index, scale * 100)
-            return `${point.x},${point.y}`
-          }).join(' ')}
-          fill="none"
-          stroke="rgba(255,255,255,0.12)"
-        />
-      ))}
-      {rows.map((row, index) => {
-        const edge = pointFor(index, 100)
-        const label = pointFor(index, 123)
-        return (
-          <g key={row.key}>
-            <line x1={center} y1={center} x2={edge.x} y2={edge.y} stroke="rgba(255,255,255,0.12)" />
-            <text x={label.x} y={label.y} textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground text-[10px] sm:text-[11px]">
-              {row.label.replace('Enter ', '')}
-            </text>
-          </g>
-        )
-      })}
-      <polygon
-        points={polygon}
-        fill="rgba(34,211,238,0.22)"
-        stroke="var(--primary)"
-        strokeWidth="2"
-        className="radar-area"
-      >
-        <title>Higher scores mean faster average splits compared with the benchmark.</title>
-      </polygon>
-      {rows.map((row, index) => {
-        const point = pointFor(index, row.score ?? 0)
-        return (
-          <circle
-            key={row.key}
-            cx={point.x}
-            cy={point.y}
-            r="3.5"
-            fill="#67e8f9"
-            className="chart-point"
-            tabIndex={0}
-          >
-            <title>
-              {row.label}: {formatDuration(row.average)} average, {row.samples} sample{row.samples === 1 ? '' : 's'}
-            </title>
-          </circle>
-        )
-      })}
-    </svg>
+    <div className="h-64 min-w-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <RadarChart data={values} outerRadius="68%">
+          <PolarGrid stroke="var(--chart-grid)" />
+          <PolarAngleAxis
+            dataKey="label"
+            tick={{ fill: 'var(--chart-axis)', fontSize: 10 }}
+            tickFormatter={(value: string) => value.replace('Enter ', '')}
+          />
+          <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
+          <Tooltip content={<RadarTooltip />} />
+          <Radar
+            dataKey="score"
+            stroke="var(--chart-1)"
+            fill="var(--chart-1)"
+            fillOpacity={0.23}
+            isAnimationActive={!reducedMotion}
+            animationDuration={650}
+            dot={{ r: 3, fill: 'var(--chart-1)' }}
+            activeDot={{ r: 6, fill: 'var(--chart-1)' }}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+function PieTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: readonly TooltipEntry<PlayerDashboard['deathsBySplit']['slices'][number]>[]
+}) {
+  const slice = payload?.[0]?.payload
+  if (!active || !slice) return null
+  return (
+    <ChartTooltipShell>
+      <p className="font-semibold">{slice.label}</p>
+      <p className="mt-1 font-mono text-primary">{slice.count} endings · {formatPercent(slice.percent)}</p>
+      <p className="mt-1 text-muted-foreground">Of the classified ending sample</p>
+    </ChartTooltipShell>
   )
 }
 
 function DonutChart({ data }: { data: PlayerDashboard['deathsBySplit'] }) {
+  const reducedMotion = useReducedMotion()
   if (data.total === 0) {
-    return <EmptyChart message="No classified failed endings were found in the detailed match sample." />
+    return <EmptyChart message="No failed endings could be classified from real timeline events." />
   }
-
-  let cumulative = 0
-  const radius = 72
-  const center = 100
-  const circumference = 2 * Math.PI * radius
-
   return (
-    <div className="grid gap-4 sm:grid-cols-[220px_1fr] sm:items-center">
-      <svg role="img" aria-label="Failed endings by split" viewBox="0 0 200 200" className="mx-auto h-52 w-52 -rotate-90">
-        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="26" />
-        {data.slices.map((slice, index) => {
-          const dash = slice.percent * circumference
-          const segment = (
-            <circle
-              key={slice.key}
-              cx={center}
-              cy={center}
-              r={radius}
-              fill="none"
-              stroke={chartColors[index % chartColors.length]}
-              strokeWidth="26"
-              strokeDasharray={`${dash} ${circumference - dash}`}
-              strokeDashoffset={-cumulative}
-              className="donut-segment"
-              tabIndex={0}
-            >
-              <title>
-                {slice.label}: {slice.count} ({formatPercent(slice.percent)})
-              </title>
-            </circle>
-          )
-          cumulative += dash
-          return segment
-        })}
-      </svg>
-      <div className="space-y-2">
-        {data.slices.map((slice, index) => (
-          <div key={slice.key} className="flex items-center justify-between gap-3 text-sm">
-            <span className="inline-flex items-center gap-2 text-muted-foreground">
-              <span className="h-2.5 w-2.5" style={{ backgroundColor: chartColors[index % chartColors.length] }} />
-              {slice.label}
-            </span>
-            <span className="font-mono text-foreground">
-              {slice.count} · {formatPercent(slice.percent)}
-            </span>
+    <div className="h-64 min-w-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data.slices}
+            dataKey="count"
+            nameKey="label"
+            innerRadius="46%"
+            outerRadius="72%"
+            paddingAngle={2}
+            stroke="var(--card)"
+            strokeWidth={2}
+            isAnimationActive={!reducedMotion}
+            animationDuration={650}
+            activeShape={{ stroke: 'var(--foreground)', strokeWidth: 2 }}
+          >
+            {data.slices.map((slice, index) => (
+              <Cell key={slice.key} fill={chartColors[index % chartColors.length]} />
+            ))}
+          </Pie>
+          <Tooltip content={<PieTooltip />} />
+          <Legend
+            iconType="square"
+            wrapperStyle={{ fontSize: 11, color: 'var(--chart-axis)' }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+function DataTable({
+  headers,
+  rows,
+}: {
+  headers: Array<{ label: string; align?: 'left' | 'right'; width: string }>
+  rows: Array<{ key: string; cells: Array<{ label: string; value: ReactNode; className?: string }> }>
+}) {
+  return (
+    <>
+      <table className="hidden w-full table-fixed text-[13px] sm:table">
+        <thead className="border-y border-border bg-[var(--table-header)] font-mono text-[11px] uppercase text-muted-foreground">
+          <tr>
+            {headers.map((header) => (
+              <th key={header.label} className={cn('px-2 py-2.5 font-medium', header.align === 'right' ? 'text-right' : 'text-left')} style={{ width: header.width }}>
+                {header.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key} className="border-b border-border/70 transition hover:bg-[var(--table-row-hover)]">
+              {row.cells.map((cell) => (
+                <td key={cell.label} className={cn('break-words px-2 py-2.5 leading-5', cell.className)}>
+                  {cell.value}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="grid gap-2 sm:hidden">
+        {rows.map((row) => (
+          <div key={row.key} className="grid grid-cols-2 gap-x-3 gap-y-1 rounded-md border border-border bg-[var(--neutral-performance-bg)] p-3">
+            {row.cells.map((cell) => (
+              <div key={cell.label} className={cell.label === headers[0]?.label ? 'col-span-2 border-b border-border pb-2 font-semibold' : ''}>
+                <span className="block text-[10px] uppercase text-muted-foreground">{cell.label}</span>
+                <span className={cn('mt-0.5 block text-sm', cell.className)}>{cell.value}</span>
+              </div>
+            ))}
           </div>
         ))}
       </div>
-    </div>
+    </>
   )
 }
 
 function SplitTimesTable({ data }: { data: PlayerDashboard['splitTimes'] }) {
   return (
-    <div className="min-w-0">
-      <p className="mb-3 text-xs text-muted-foreground">
-        Completed matches used: {data.completedMatches}
-      </p>
-      <table className="w-full table-fixed text-[13px] sm:text-sm">
-        <thead className="border-b border-border bg-muted/25 font-mono text-xs uppercase text-muted-foreground">
-          <tr>
-            <th className="w-[34%] px-2 py-3 text-left font-medium">Split</th>
-            <th className="w-[22%] px-2 py-3 text-right font-medium">Average</th>
-            <th className="w-[20%] px-2 py-3 text-right font-medium">Best</th>
-            <th className="w-[24%] px-2 py-3 text-right font-medium">Diff</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.rows.map((row) => (
-            <tr key={row.key} className="border-b border-border/70">
-              <td className="break-words px-2 py-3 font-medium leading-5 text-foreground">{row.label}</td>
-              <td className="px-2 py-3 text-right font-mono tabular-nums text-muted-foreground">{formatDuration(row.average)}</td>
-              <td className="px-2 py-3 text-right font-mono tabular-nums text-emerald-300">{formatDuration(row.best)}</td>
-              <td className={cn('px-2 py-3 text-right font-mono tabular-nums', (row.averageDifference ?? 0) <= 0 ? 'text-emerald-300' : 'text-rose-300')}>
-                {formatSignedDuration(row.averageDifference)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      headers={[
+        { label: 'Segment', width: '32%' },
+        { label: 'Average', align: 'right', width: '23%' },
+        { label: 'Best', align: 'right', width: '20%' },
+        { label: 'Difference', align: 'right', width: '25%' },
+      ]}
+      rows={data.rows.map((row) => ({
+        key: row.key,
+        cells: [
+          { label: 'Segment', value: row.label, className: 'font-medium text-foreground' },
+          { label: 'Average', value: formatDuration(row.average), className: 'text-right font-mono tabular-nums text-muted-foreground' },
+          { label: 'Best', value: formatDuration(row.best), className: 'text-right font-mono tabular-nums text-success' },
+          {
+            label: 'Difference',
+            value: formatSignedDuration(row.averageDifference),
+            className: cn(
+              'text-right font-mono tabular-nums',
+              row.averageDifference == null ? 'text-muted-foreground' : row.averageDifference <= 0 ? 'text-success' : 'text-danger',
+            ),
+          },
+        ],
+      }))}
+    />
   )
 }
 
 function SeedTypesTable({ rows }: { rows: PlayerDashboard['seedTypes'] }) {
   if (rows.length === 0) return <EmptyChart message="No seed-type data was available." />
-
   return (
-    <div className="min-w-0">
-      <table className="w-full table-fixed text-[13px] sm:text-sm">
-        <thead className="border-b border-border bg-muted/25 font-mono text-xs uppercase text-muted-foreground">
-          <tr>
-            <th className="w-[34%] px-2 py-3 text-left font-medium">Seed Type</th>
-            <th className="w-[27%] px-2 py-3 text-right font-medium">Avg</th>
-            <th className="w-[18%] px-2 py-3 text-right font-medium">Matches</th>
-            <th className="w-[21%] px-2 py-3 text-right font-medium">Win Rate</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.seedType} className="border-b border-border/70">
-              <td className="break-words px-2 py-3 font-medium leading-5 text-foreground">{row.seedType}</td>
-              <td className="px-2 py-3 text-right font-mono tabular-nums text-muted-foreground">{formatDuration(row.averageCompletion)}</td>
-              <td className="px-2 py-3 text-right font-mono tabular-nums text-foreground">{row.matches}</td>
-              <td className="px-2 py-3 text-right font-mono tabular-nums text-cyan-300">{formatPercent(row.winRate)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      headers={[
+        { label: 'Seed type', width: '34%' },
+        { label: 'Average', align: 'right', width: '27%' },
+        { label: 'Matches', align: 'right', width: '17%' },
+        { label: 'Win rate', align: 'right', width: '22%' },
+      ]}
+      rows={rows.map((row) => ({
+        key: row.seedType,
+        cells: [
+          { label: 'Seed type', value: row.seedType, className: 'font-medium text-foreground' },
+          { label: 'Average', value: formatDuration(row.averageCompletion), className: 'text-right font-mono tabular-nums text-muted-foreground' },
+          { label: 'Matches', value: row.matches, className: 'text-right font-mono tabular-nums text-foreground' },
+          { label: 'Win rate', value: formatPercent(row.winRate), className: cn('text-right font-mono tabular-nums', row.matches < 3 ? 'text-muted-foreground' : (row.winRate ?? 0) >= 0.55 ? 'text-success' : (row.winRate ?? 0) < 0.4 ? 'text-danger' : 'text-warning') },
+        ],
+      }))}
+    />
   )
 }
 
 function BastionTypesTable({ rows }: { rows: PlayerDashboard['bastionTypes'] }) {
   if (rows.length === 0) return <EmptyChart message="No bastion-type data was available in detailed matches." />
-
   return (
-    <div className="min-w-0">
-      <table className="w-full table-fixed text-[13px] sm:text-sm">
-        <thead className="border-b border-border bg-muted/25 font-mono text-xs uppercase text-muted-foreground">
-          <tr>
-            <th className="w-[34%] px-2 py-3 text-left font-medium">Bastion</th>
-            <th className="w-[18%] px-2 py-3 text-right font-medium">Matches</th>
-            <th className="w-[21%] px-2 py-3 text-right font-medium">Win Rate</th>
-            <th className="w-[27%] px-2 py-3 text-right font-medium">Avg Split</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.bastionType} className="border-b border-border/70">
-              <td className="break-words px-2 py-3 font-medium leading-5 text-foreground">{row.bastionType}</td>
-              <td className="px-2 py-3 text-right font-mono tabular-nums text-foreground">{row.matches}</td>
-              <td className="px-2 py-3 text-right font-mono tabular-nums text-cyan-300">{formatPercent(row.winRate)}</td>
-              <td className="px-2 py-3 text-right font-mono tabular-nums text-muted-foreground">{formatDuration(row.averageSplit)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable
+      headers={[
+        { label: 'Bastion', width: '32%' },
+        { label: 'Matches', align: 'right', width: '18%' },
+        { label: 'Win rate', align: 'right', width: '22%' },
+        { label: 'Average split', align: 'right', width: '28%' },
+      ]}
+      rows={rows.map((row) => ({
+        key: row.bastionType,
+        cells: [
+          { label: 'Bastion', value: row.bastionType, className: 'font-medium text-foreground' },
+          { label: 'Matches', value: row.matches, className: 'text-right font-mono tabular-nums text-foreground' },
+          { label: 'Win rate', value: formatPercent(row.winRate), className: cn('text-right font-mono tabular-nums', row.matches < 3 ? 'text-muted-foreground' : (row.winRate ?? 0) >= 0.55 ? 'text-success' : (row.winRate ?? 0) < 0.4 ? 'text-danger' : 'text-warning') },
+          { label: 'Average split', value: formatDuration(row.averageSplit), className: 'text-right font-mono tabular-nums text-muted-foreground' },
+        ],
+      }))}
+    />
   )
 }
 
@@ -509,34 +584,23 @@ export function StatsDashboard({ dashboard }: { dashboard: PlayerDashboard }) {
     () => `${dashboard.overview.username.toLowerCase()}-mcsr-stats.png`,
     [dashboard.overview.username],
   )
-  const splitDataSamples = dashboard.splitPerformance.filter(
-    (row) => row.score != null,
-  ).length
-  const seedMatchSamples = dashboard.seedTypes.reduce(
-    (sum, row) => sum + row.matches,
-    0,
-  )
-  const bastionSamples = dashboard.bastionTypes.reduce(
-    (sum, row) => sum + row.matches,
-    0,
-  )
+  const splitSamples = dashboard.splitTimes.rows.reduce((sum, row) => sum + row.samples, 0)
+  const seedSamples = dashboard.seedTypes.reduce((sum, row) => sum + row.matches, 0)
+  const bastionSamples = dashboard.bastionTypes.reduce((sum, row) => sum + row.matches, 0)
 
   async function exportDashboard() {
     if (!ref.current) return
-
     try {
       setExportState('working')
-      const pixelRatio = Math.min(window.devicePixelRatio || 2, 3)
+      const rootStyles = getComputedStyle(ref.current)
+      const background = rootStyles.getPropertyValue('--background').trim() || '#070b0d'
       const dataUrl = await toPng(ref.current, {
         cacheBust: true,
-        pixelRatio,
-        backgroundColor: '#070b16',
+        pixelRatio: Math.min(window.devicePixelRatio || 2, 3),
+        backgroundColor: background,
         width: ref.current.scrollWidth,
         height: ref.current.scrollHeight,
-        style: {
-          transform: 'none',
-          background: '#070b16',
-        },
+        style: { transform: 'none', background },
       })
       const link = document.createElement('a')
       link.download = fileName
@@ -550,121 +614,53 @@ export function StatsDashboard({ dashboard }: { dashboard: PlayerDashboard }) {
 
   return (
     <section className="space-y-4">
-      <style>{`
-        .dashboard-line {
-          stroke-dasharray: 1;
-          stroke-dashoffset: 1;
-          animation: dashboard-line-draw 700ms ease-out forwards;
-        }
-        .radar-area {
-          transform-origin: center;
-          animation: radar-grow 520ms ease-out forwards;
-        }
-        .donut-segment {
-          transition: opacity 160ms ease, stroke-width 160ms ease;
-          animation: donut-pop 520ms ease-out both;
-        }
-        .chart-point {
-          transform-origin: center;
-          opacity: 0;
-          animation: point-pop 420ms ease-out 420ms forwards;
-          transition: r 140ms ease, filter 140ms ease;
-          outline: none;
-        }
-        .chart-point:hover,
-        .chart-point:focus-visible {
-          r: 6px;
-          filter: drop-shadow(0 0 8px rgba(103, 232, 249, 0.7));
-        }
-        .donut-segment:hover,
-        .donut-segment:focus-visible {
-          opacity: 0.86;
-          stroke-width: 31;
-          outline: none;
-        }
-        @keyframes dashboard-line-draw {
-          to { stroke-dashoffset: 0; }
-        }
-        @keyframes point-pop {
-          from { opacity: 0; transform: scale(0.4); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        @keyframes radar-grow {
-          from { transform: scale(0.08); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes donut-pop {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .dashboard-line,
-          .radar-area,
-          .donut-segment,
-          .chart-point {
-            animation: none;
-            opacity: 1;
-            stroke-dashoffset: 0;
-          }
-        }
-      `}</style>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="font-mono text-sm uppercase text-muted-foreground">
           Loaded {dashboard.loadedMatches} ranked matches
         </p>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={exportDashboard}
-          disabled={exportState === 'working'}
-          className="h-9 w-full sm:w-auto"
-        >
+        <Button type="button" variant="outline" onClick={exportDashboard} disabled={exportState === 'working'} className="h-9 w-full sm:w-auto">
           <Download className="h-4 w-4" />
           {exportState === 'working' ? 'Exporting...' : 'Export stats card as image'}
         </Button>
       </div>
-      {exportState === 'error' && (
-        <div className="border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
-          Export failed. Try again after images finish loading.
+      {exportState === 'error' ? (
+        <div className="rounded-md border border-danger/40 bg-[var(--negative-performance-bg)] p-3 text-sm text-danger">
+          Export failed. Wait for player images to load, then try again.
         </div>
-      )}
+      ) : null}
 
-      <div
-        ref={ref}
-        className="space-y-4 bg-background p-0 text-foreground"
-        data-export-root
-      >
+      <div ref={ref} className="space-y-4 bg-background text-foreground" data-export-root>
         <PlayerOverview dashboard={dashboard} />
-
-        <div className="grid gap-4 xl:grid-cols-3">
-          <ChartCard title="Elo Change" sample={`${dashboard.eloHistory.length} Elo records`}>
-            <EloHistoryChart points={dashboard.eloHistory} />
-          </ChartCard>
-          <ChartCard title="Split Performances" sample={`Based on ${splitDataSamples} splits with usable averages from ${dashboard.splitTimes.completedMatches} completed matches`}>
+        <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <EloHistoryCard points={dashboard.eloHistory} />
+          <ChartCard title="Segment Performance" sample={`${splitSamples} valid segment records across ${dashboard.splitTimes.completedMatches} completed matches`}>
             <SplitPerformanceRadar rows={dashboard.splitPerformance} />
           </ChartCard>
-          <ChartCard title="Deaths by Split" sample={`${dashboard.deathsBySplit.total} classified run endings`}>
+          <ChartCard title="Run Endings" sample={`${dashboard.deathsBySplit.total} classified run endings`}>
             <DonutChart data={dashboard.deathsBySplit} />
           </ChartCard>
         </div>
-
-        <div className="grid gap-4 xl:grid-cols-3">
-          <ChartCard title="Split Times" sample={`Based on ${dashboard.splitTimes.completedMatches} completed matches · ${dashboard.benchmarkLabel}`}>
+        <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <ChartCard title="Segment Times" sample={`${splitSamples} valid segments · ${dashboard.benchmarkLabel}`}>
             <SplitTimesTable data={dashboard.splitTimes} />
           </ChartCard>
-          <ChartCard title="Seed Types" sample={`Based on ${seedMatchSamples} loaded matches`}>
+          <ChartCard title="Seed Types" sample={`${seedSamples} loaded matches grouped by recorded seed type`}>
             <SeedTypesTable rows={dashboard.seedTypes} />
           </ChartCard>
-          <ChartCard title="Bastion Types" sample={`Based on ${bastionSamples} recorded bastions`}>
+          <ChartCard title="Bastion Types" sample={`${bastionSamples} detailed matches with recorded bastions`}>
             <BastionTypesTable rows={dashboard.bastionTypes} />
           </ChartCard>
         </div>
-
-        {dashboard.dataQuality.length > 0 && (
-          <div className="border border-border bg-card/80 p-3 text-xs leading-5 text-muted-foreground">
+        <Card className="rounded-lg border-border bg-card/95 p-4 sm:p-5">
+          <h3 className="font-mono text-sm font-semibold uppercase text-primary">Human Summary (0% AI)</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{dashboard.loadedMatches}-match sample</p>
+          <p className="mt-3 max-w-5xl text-sm leading-6 text-foreground">{dashboard.humanSummary}</p>
+        </Card>
+        {dashboard.dataQuality.length > 0 ? (
+          <div className="rounded-md border border-border bg-card/85 p-3 text-xs leading-5 text-muted-foreground">
             {dashboard.dataQuality.join(' ')}
           </div>
-        )}
+        ) : null}
       </div>
     </section>
   )

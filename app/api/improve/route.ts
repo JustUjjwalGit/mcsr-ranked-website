@@ -10,6 +10,9 @@ import {
 } from '@/lib/mcsr'
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
 import type { PlayerDashboard } from '@/components/improve/types'
+import { recommendTutorials } from '@/lib/tutorial-recommendations'
+import { segmentDuration } from '@/lib/improve-segments'
+import { buildHumanSummary } from '@/lib/human-summary'
 
 const MATCH_COUNT = 100
 const DETAIL_COUNT = 30
@@ -124,46 +127,59 @@ type IssueMatch = {
 }
 type SegmentSample = {
   match: McsrMatch
+  playerUuid: string
   opponent: { uuid: string; nickname?: string | null } | null
   segments: Record<SegmentKey, number | null>
 }
 
 const dashboardSplitDefinitions = [
-  { key: 'enterNether', label: 'Enter Nether', benchmarkSegments: ['overworld'] },
+  {
+    key: 'enterNether',
+    label: 'Enter Nether',
+    to: 'enterNether',
+    previous: [],
+  },
   {
     key: 'findBastion',
     label: 'Enter Bastion',
-    benchmarkSegments: ['overworld', 'findBastion'],
+    to: 'findBastion',
+    previous: ['enterNether'],
   },
   {
     key: 'findFortress',
     label: 'Enter Fortress',
-    benchmarkSegments: ['overworld', 'findBastion', 'bastion'],
+    to: 'findFortress',
+    previous: ['enterNether', 'findBastion', 'lootBastion'],
   },
   {
     key: 'blindTravel',
     label: 'Blind Travel',
-    benchmarkSegments: ['overworld', 'findBastion', 'bastion', 'fortress', 'blinding'],
+    to: 'blindTravel',
+    previous: ['enterNether', 'findBastion', 'lootBastion', 'findFortress', 'firstRod'],
   },
   {
     key: 'stronghold',
     label: 'Stronghold',
-    benchmarkSegments: ['overworld', 'findBastion', 'bastion', 'fortress', 'blinding'],
+    to: 'stronghold',
+    previous: ['blindTravel'],
   },
   {
     key: 'enterEnd',
     label: 'Enter End',
-    benchmarkSegments: ['overworld', 'findBastion', 'bastion', 'fortress', 'blinding', 'stronghold'],
+    to: 'enterEnd',
+    previous: ['stronghold'],
   },
   {
     key: 'finish',
     label: 'Dragon Kill',
-    benchmarkSegments: ['overworld', 'findBastion', 'bastion', 'fortress', 'blinding', 'stronghold', 'dragon'],
+    to: 'finish',
+    previous: ['enterEnd'],
   },
 ] as const satisfies readonly {
   key: MilestoneKey
   label: string
-  benchmarkSegments: readonly SegmentKey[]
+  to: MilestoneKey
+  previous: readonly MilestoneKey[]
 }[]
 
 const endingLabels: Record<SegmentKey, string> = {
@@ -240,8 +256,6 @@ const videoLibrary: Record<
     thumbnail: 'https://img.youtube.com/vi/u9UVwwWxN_k/hqdefault.jpg',
   },
 }
-
-const bastionVideoKeys = ['treasure', 'housing', 'stables', 'bridge'] as const
 
 const rankBands = [
   { name: 'Iron', min: 0, max: 1599 },
@@ -337,6 +351,20 @@ function cleanBenchmark(values: number[], fallback: number) {
 function percentage(numerator: number, denominator: number) {
   if (denominator <= 0) return null
   return numerator / denominator
+}
+
+function classifySkill(
+  matches: number,
+  elo: number | null,
+  completionRate: number,
+): PlayerDashboard['skillBand'] {
+  if (matches < 5) return 'Insufficient data'
+  const rating = elo ?? 0
+  if (rating >= 2200 && completionRate >= 0.75) return 'Expert'
+  if (rating >= 2000 && completionRate >= 0.6) return 'Advanced'
+  if (rating >= 1800 && completionRate >= 0.45) return 'Intermediate'
+  if (rating >= 1600 || completionRate >= 0.3) return 'Developing'
+  return 'Beginner'
 }
 
 function formatSeedType(value?: string | null) {
@@ -508,6 +536,28 @@ function extractSegments(match: McsrMatch, uuid: string) {
       return [segment.key, value]
     }),
   ) as Record<SegmentKey, number | null>
+}
+
+function extractDashboardSegments(match: McsrMatch, uuid: string) {
+  const milestones = extractMilestones(match, uuid)
+
+  return Object.fromEntries(
+    dashboardSplitDefinitions.map((definition) => {
+      const end = milestones[definition.to]
+      if (end == null) return [definition.key, null]
+
+      // Each displayed value is a per-match segment, never a subtraction of
+      // aggregate averages. For branching Nether routes, use the latest valid
+      // earlier milestone (for example loot bastion or fortress) that actually
+      // occurred before this milestone.
+      const duration = segmentDuration(
+        end,
+        definition.previous.map((key) => milestones[key]),
+        definition.previous.length === 0,
+      )
+      return [definition.key, duration]
+    }),
+  ) as Record<MilestoneKey, number | null>
 }
 
 function validSegmentTime(key: SegmentKey, value: number | null | undefined) {
@@ -692,6 +742,7 @@ async function fetchTargetBenchmarkSamples(
         .filter((player) => hasCompleted(match, player.uuid))
         .map((player) => ({
           match,
+          playerUuid: player.uuid,
           opponent: player,
           segments: extractSegments(match, player.uuid),
         })),
@@ -767,6 +818,7 @@ export async function GET(request: Request) {
 
     const playerSegments: SegmentSample[] = completedMatches.map((match) => ({
       match,
+      playerUuid: profile.uuid,
       opponent: null,
       segments: extractSegments(match, profile.uuid),
     }))
@@ -782,6 +834,7 @@ export async function GET(request: Request) {
       return [
         {
           match,
+          playerUuid: opponent.uuid,
           opponent,
           segments: extractSegments(match, opponent.uuid),
         },
@@ -963,14 +1016,6 @@ export async function GET(request: Request) {
     }
 
     const seasonStats = profileData?.statistics?.season
-    const profileMatches = seasonStats?.playedMatches?.ranked ?? matches.length
-    const profileWins = seasonStats?.wins?.ranked ?? matches.filter((match) => isWin(match, profile.uuid)).length
-    const profileLosses =
-      seasonStats?.loses?.ranked ??
-      matches.filter((match) => !isWin(match, profile.uuid) && !isDraw(match)).length
-    const profileForfeits =
-      seasonStats?.forfeits?.ranked ??
-      matches.filter((match) => match.forfeited).length
     const profileCompletions =
       seasonStats?.completions?.ranked ?? listedCompletedTimes.length
     const profileCompletionTime =
@@ -985,24 +1030,21 @@ export async function GET(request: Request) {
 
     const milestoneSamples = completedMatches.map((match) => ({
       match,
-      milestones: extractMilestones(match, profile.uuid),
+      segments: extractDashboardSegments(match, profile.uuid),
     }))
     const splitRows = dashboardSplitDefinitions.map((split) => {
       const values = milestoneSamples
-        .map((sample) => sample.milestones[split.key])
+        .map((sample) => sample.segments[split.key])
         .filter((time): time is number => time != null && time > 0)
-      const benchmarkParts = split.benchmarkSegments
-        .map(
-          (segmentKey) =>
-            splitComparisons.find((candidate) => candidate.key === segmentKey)
-              ?.benchmarkAverage ?? null,
-        )
-        .filter((time): time is number => time != null)
+      const targetValues = targetBenchmarkSegments
+        .map((sample) => extractDashboardSegments(sample.match, sample.playerUuid)[split.key])
+        .filter((time): time is number => time != null && time > 0)
+      const opponentValues = benchmarkSegments
+        .map((sample) => extractDashboardSegments(sample.match, sample.playerUuid)[split.key])
+        .filter((time): time is number => time != null && time > 0)
       const averageValue = average(values)
-      const benchmarkAverage =
-        benchmarkParts.length === split.benchmarkSegments.length
-          ? benchmarkParts.reduce((sum, value) => sum + value, 0)
-          : null
+      const benchmarkValues = targetValues.length >= 3 ? targetValues : opponentValues
+      const benchmarkAverage = benchmarkValues.length > 0 ? cleanAverage(benchmarkValues) : null
       const difference =
         averageValue != null && benchmarkAverage != null
           ? averageValue - benchmarkAverage
@@ -1074,7 +1116,7 @@ export async function GET(request: Request) {
     const bastionGroups = summarizeNumberGroups(
       analysisMatches,
       (match) => normalizeCategory(match.seed?.nether ?? match.bastionType),
-      (match) => extractMilestones(match, profile.uuid).findBastion,
+      (match) => extractDashboardSegments(match, profile.uuid).findBastion,
       profile.uuid,
     )
     const bastionTypes = [...bastionGroups.entries()]
@@ -1093,6 +1135,11 @@ export async function GET(request: Request) {
       .map((match) => {
         const opponent = getOpponent(match, profile.uuid)
         const change = getPlayerChange(match, profile.uuid)
+        const result: PlayerDashboard['eloHistory'][number]['result'] = isDraw(match)
+          ? 'Draw'
+          : isWin(match, profile.uuid)
+            ? 'Win'
+            : 'Loss'
 
         return {
           matchId: match.id,
@@ -1100,9 +1147,45 @@ export async function GET(request: Request) {
           elo: getEloAfterMatch(match, profile.uuid),
           change: change?.change ?? null,
           opponent: opponent?.nickname ?? null,
+          result,
         }
       })
       .filter((point) => point.elo != null)
+
+    const loadedWins = matches.filter((match) => isWin(match, profile.uuid)).length
+    const loadedDraws = matches.filter(isDraw).length
+    const loadedLosses = Math.max(matches.length - loadedWins - loadedDraws, 0)
+    const loadedForfeits = matches.filter((match) => match.forfeited).length
+    const deathsBySplit: PlayerDashboard['deathsBySplit'] = {
+      total: endingTotal,
+      slices: [...endingCounts.entries()]
+        .map(([label, count]) => ({
+          key: label.toLowerCase(),
+          label,
+          count,
+          percent: percentage(count, endingTotal) ?? 0,
+        }))
+        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
+    }
+    const loadedWinRate = percentage(loadedWins, loadedWins + loadedLosses)
+    const loadedForfeitRate = percentage(loadedForfeits, matches.length)
+    const skillBand = classifySkill(
+      matches.length,
+      profile.eloRate,
+      percentage(completedMatches.length, analysisMatches.length) ?? 0,
+    )
+    const humanSummary = buildHumanSummary({
+      username: profile.nickname,
+      matches: matches.length,
+      wins: loadedWins,
+      losses: loadedLosses,
+      draws: loadedDraws,
+      splitRows,
+      seedTypes,
+      bastionTypes,
+      deaths: deathsBySplit,
+      forfeitRate: loadedForfeitRate,
+    })
 
     const dashboard: PlayerDashboard = {
       loadedMatches: matches.length,
@@ -1118,28 +1201,18 @@ export async function GET(request: Request) {
         elo: profile.eloRate,
         rank: profile.eloRank,
         tier: currentTier.name,
-        wins: profileWins,
-        losses: profileLosses,
-        draws: matches.filter(isDraw).length,
+        wins: loadedWins,
+        losses: loadedLosses,
+        draws: loadedDraws,
         pb: seasonStats?.bestTime?.ranked ?? (listedCompletedTimes.length > 0 ? Math.min(...listedCompletedTimes) : null),
         averageCompletion:
           profileCompletions > 0 ? Math.round(profileCompletionTime / profileCompletions) : null,
-        winRate: percentage(profileWins, profileWins + profileLosses),
-        forfeitRate: percentage(profileForfeits, profileMatches),
+        winRate: loadedWinRate,
+        forfeitRate: loadedForfeitRate,
       },
       eloHistory,
       splitPerformance,
-      deathsBySplit: {
-        total: endingTotal,
-        slices: [...endingCounts.entries()]
-          .map(([label, count]) => ({
-            key: label.toLowerCase(),
-            label,
-            count,
-            percent: percentage(count, endingTotal) ?? 0,
-          }))
-          .sort((a, b) => b.count - a.count),
-      },
+      deathsBySplit,
       splitTimes: {
         completedMatches: completedMatches.length,
         rows: splitRows,
@@ -1153,6 +1226,8 @@ export async function GET(request: Request) {
           ? ['No numeric Elo changes were available in the loaded matches.']
           : []),
       ],
+      skillBand,
+      humanSummary,
     }
 
     const issueBastionKey =
@@ -1163,21 +1238,15 @@ export async function GET(request: Request) {
       issueBastionKey ??
       (lastCompleted ? normalizeVideoKey(lastCompleted.bastionType) : null)
 
-    const recommendedKeys = [
-      weakestSplit?.key === 'bastion' ? bestBastion : weakestSplit?.key,
-      weakestSplit?.key === 'bastion' ? 'bastion' : null,
-      ...bastionVideoKeys,
-      'fortress',
-      'blinding',
-      'dragon',
-    ].filter(Boolean) as string[]
-    const recommendations = recommendedKeys
-      .map((key) => videoLibrary[key])
-      .filter(
-        (video, index, videos) =>
-          video && videos.findIndex((candidate) => candidate.url === video.url) === index,
-      )
-      .slice(0, 4)
+    const recommendations = recommendTutorials({
+      level: skillBand,
+      weakSplit: weakestSplit?.key ?? null,
+      weakSplitSamples: weakestSplit?.samples ?? 0,
+      weakSplitGap: weakestSplit?.difference ?? null,
+      dominantEnding: deathsBySplit.slices[0]?.label ?? null,
+      forfeitRate: loadedForfeitRate,
+      bastionType: bestBastion,
+    })
 
     return Response.json(
       {

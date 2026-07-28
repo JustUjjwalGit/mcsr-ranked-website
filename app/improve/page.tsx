@@ -1,6 +1,7 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useRef, useState } from 'react'
+import Image from 'next/image'
 import {
   BarChart3,
   ChevronDown,
@@ -91,6 +92,8 @@ interface ImproveAnalysis {
     url: string
     focus: string
     thumbnail: string
+    source?: string
+    official?: boolean
   }>
   formatted: {
     averageCompletion: string
@@ -183,6 +186,7 @@ export default function ImprovePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showMatches, setShowMatches] = useState(false)
+  const requestRef = useRef<{ id: number; controller: AbortController } | null>(null)
 
   async function analyzePlayer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -192,14 +196,24 @@ export default function ImprovePage() {
       return
     }
 
+    requestRef.current?.controller.abort()
+    const request = {
+      id: (requestRef.current?.id ?? 0) + 1,
+      controller: new AbortController(),
+    }
+    requestRef.current = request
+
     try {
       setLoading(true)
       setError('')
       setShowMatches(false)
+      setAnalysis(null)
       const response = await fetch(
         `/api/improve?username=${encodeURIComponent(query)}`,
+        { signal: request.controller.signal },
       )
       const data = await response.json()
+      if (requestRef.current?.id !== request.id) return
 
       if (!response.ok || !data.analysis) {
         setAnalysis(null)
@@ -208,11 +222,12 @@ export default function ImprovePage() {
       }
 
       setAnalysis(data.analysis)
-    } catch {
+    } catch (requestError) {
+      if (requestError instanceof DOMException && requestError.name === 'AbortError') return
       setAnalysis(null)
       setError('Could not analyze that player.')
     } finally {
-      setLoading(false)
+      if (requestRef.current?.id === request.id) setLoading(false)
     }
   }
 
@@ -531,9 +546,11 @@ export default function ImprovePage() {
                       className="group overflow-hidden border border-border bg-card/80 transition hover:border-primary"
                     >
                       <div className="relative aspect-video overflow-hidden bg-muted">
-                        <img
+                        <Image
                           src={video.thumbnail}
                           alt=""
+                          fill
+                          sizes="(max-width: 768px) 100vw, 25vw"
                           className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-black/15" />
@@ -548,8 +565,8 @@ export default function ImprovePage() {
                         <p className="line-clamp-2 text-xs text-muted-foreground">
                           {video.focus}
                         </p>
-                        <span className="inline-flex items-center gap-1 font-mono text-xs uppercase text-cyan-400">
-                          Watch on YouTube
+                        <span className="inline-flex items-center gap-1 font-mono text-xs uppercase text-primary">
+                          {video.official ? 'Official resource' : video.source ?? 'Open tutorial'}
                           <ExternalLink className="h-3 w-3" />
                         </span>
                       </div>
