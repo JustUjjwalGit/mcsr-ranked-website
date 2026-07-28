@@ -32,11 +32,22 @@ export interface McsrCompletion {
   time: number
 }
 
+export interface McsrMatchSeed {
+  id?: string | null
+  overworld?: string | null
+  nether?: string | null
+  endTowers?: number[]
+  variations?: string[]
+}
+
 export interface McsrMatch {
   id: number
   type?: number
   season?: number
+  category?: string | null
+  gameMode?: string | null
   date: number
+  seed?: McsrMatchSeed | null
   seedType?: string | null
   bastionType?: string | null
   players: McsrUser[]
@@ -54,6 +65,32 @@ export interface McsrMatch {
     eloRate: number | null
   }[]
   decayed?: boolean
+}
+
+export interface McsrUserConnections {
+  discord?: { id?: string; name?: string } | null
+  youtube?: { id?: string; name?: string } | null
+  twitch?: { id?: string; name?: string } | null
+}
+
+export type McsrUserProfileData = Omit<McsrUser, 'seasonResult'> & {
+  connections?: McsrUserConnections | null
+  timestamp?: {
+    firstOnline?: number | null
+    lastOnline?: number | null
+    lastRanked?: number | null
+    nextDecay?: number | null
+  } | null
+  statistics?: McsrStatistics
+  seasonResult?: {
+    last?: {
+      eloRate?: number | null
+      eloRank?: number | null
+      phasePoint?: number | null
+    } | null
+    highest?: number | null
+    lowest?: number | null
+  } | null
 }
 
 interface McsrStatBucket {

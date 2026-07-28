@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getPlayerAvatarUrl, placeholderUserPath } from '@/lib/player-avatar'
 import { cn } from '@/lib/utils'
 
@@ -20,12 +20,18 @@ export function UserAvatar({
   className,
   priority,
 }: UserAvatarProps) {
+  const nextSrc = getPlayerAvatarUrl(uuid, username, size)
   const [src, setSrc] = useState(() =>
-    getPlayerAvatarUrl(uuid, username, size),
+    nextSrc,
   )
+
+  useEffect(() => {
+    setSrc(nextSrc)
+  }, [nextSrc])
 
   return (
     <Image
+      key={nextSrc}
       src={src}
       alt={username ? `${username} avatar` : 'Player avatar'}
       width={size}

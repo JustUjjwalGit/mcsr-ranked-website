@@ -14,6 +14,8 @@ import { Header } from '@/components/header'
 import { Button } from '@/components/ui/button'
 import { SiteLoader } from '@/components/site-loader'
 import { UserAvatar } from '@/components/user-avatar'
+import { StatsDashboard } from '@/components/improve/stats-dashboard'
+import type { PlayerDashboard } from '@/components/improve/types'
 
 interface SplitComparison {
   key: string
@@ -94,6 +96,7 @@ interface ImproveAnalysis {
     averageCompletion: string
     bestCompletion: string
   }
+  dashboard?: PlayerDashboard
 }
 
 function formatTime(ms: number | null | undefined) {
@@ -135,6 +138,24 @@ function EmptyState() {
         Type a username to compare your recent splits against stronger recent
         opponents, find your biggest time loss, and get focused practice videos.
       </p>
+    </div>
+  )
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-4" aria-label="Loading dashboard">
+      <div className="h-32 animate-pulse border border-border bg-card/80" />
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="h-72 animate-pulse border border-border bg-card/80" />
+        <div className="h-72 animate-pulse border border-border bg-card/80" />
+        <div className="h-72 animate-pulse border border-border bg-card/80" />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-3">
+        <div className="h-80 animate-pulse border border-border bg-card/80" />
+        <div className="h-80 animate-pulse border border-border bg-card/80" />
+        <div className="h-80 animate-pulse border border-border bg-card/80" />
+      </div>
     </div>
   )
 }
@@ -243,10 +264,26 @@ export default function ImprovePage() {
           )}
 
           {loading ? (
-            <div className="border border-border bg-card p-10">
+            <div className="space-y-4 border border-border bg-card/70 p-4">
               <SiteLoader label="Reviewing recent matches..." />
+              <DashboardSkeleton />
             </div>
           ) : analysis ? (
+            <div className="space-y-6">
+              {analysis.dashboard ? (
+                <StatsDashboard dashboard={analysis.dashboard} />
+              ) : (
+                <div className="border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
+                  Dashboard statistics were not available for this response.
+                </div>
+              )}
+
+              {analysis.sample.matches === 0 && (
+                <div className="border border-border bg-card/80 p-4 text-sm text-muted-foreground">
+                  No ranked matches were found in the loaded sample.
+                </div>
+              )}
+
             <section className="overflow-hidden border border-border bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px]">
               <div className="border-t-2 border-t-cyan-400 bg-card/95 p-4 sm:p-5">
                 <p className="font-mono text-xs uppercase text-muted-foreground">
@@ -455,6 +492,15 @@ export default function ImprovePage() {
                                   <BarChart3 className="h-3.5 w-3.5" />
                                   Stats
                                 </a>
+                                <a
+                                  href={`https://ranked.mcsr.in/match/${match.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex h-8 items-center gap-2 border border-border bg-background px-2 text-xs text-foreground hover:border-primary"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                  Official Stats
+                                </a>
                                 {match.vodUrl && (
                                   <a
                                     href={match.vodUrl}
@@ -512,6 +558,7 @@ export default function ImprovePage() {
                 </div>
               </div>
             </section>
+            </div>
           ) : (
             <EmptyState />
           )}

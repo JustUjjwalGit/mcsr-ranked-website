@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const identifier =
-    searchParams.get('identifier') ?? searchParams.get('username')
+    (searchParams.get('identifier') ?? searchParams.get('username'))?.trim()
 
   if (!identifier) {
     return Response.json(
@@ -38,9 +38,27 @@ export async function GET(request: Request) {
     const data = await fetchAPI(`/users/${encodeURIComponent(identifier)}`)
     return Response.json(data, { headers })
   } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (
+      message.includes('API Error: 400') ||
+      message.includes('API Error: 404')
+    ) {
+      return Response.json(
+        { error: 'Player not found' },
+        { status: 404, headers }
+      )
+    }
+
+    if (message.includes('API Error: 429')) {
+      return Response.json(
+        { error: 'MCSR Ranked API rate limit reached. Try again shortly.' },
+        { status: 429, headers }
+      )
+    }
+
     return Response.json(
       { error: 'Failed to fetch player data' },
-      { status: 500, headers }
+      { status: 502, headers }
     )
   }
 }

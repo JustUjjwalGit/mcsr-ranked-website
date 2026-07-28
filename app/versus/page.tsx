@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import {
   ArrowRightLeft,
   BarChart3,
@@ -272,6 +272,10 @@ export default function VersusPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showTutorial, setShowTutorial] = useState(false)
+  const requestRef = useRef<{
+    id: number
+    controller: AbortController | null
+  }>({ id: 0, controller: null })
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -320,15 +324,24 @@ export default function VersusPage() {
       return
     }
 
+    requestRef.current.controller?.abort()
+    const requestId = requestRef.current.id + 1
+    const controller = new AbortController()
+    requestRef.current = { id: requestId, controller }
+
     try {
       setLoading(true)
       setError('')
+      setComparison(null)
       const response = await fetch(
         `/api/versus?player1=${encodeURIComponent(first)}&player2=${encodeURIComponent(
           second,
         )}`,
+        { signal: controller.signal },
       )
       const data = await response.json()
+
+      if (requestRef.current.id !== requestId) return
 
       if (!response.ok || !data.comparison) {
         setComparison(null)
@@ -337,11 +350,17 @@ export default function VersusPage() {
       }
 
       setComparison(data.comparison)
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      if (requestRef.current.id !== requestId) return
+
       setComparison(null)
       setError('Could not compare those players.')
     } finally {
-      setLoading(false)
+      if (requestRef.current.id === requestId) {
+        setLoading(false)
+        requestRef.current.controller = null
+      }
     }
   }
 
@@ -432,13 +451,13 @@ export default function VersusPage() {
           {comparison && firstPlayer && secondPlayer && (
             <div className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch">
-                <PlayerCard player={firstPlayer} />
+                <PlayerCard key={firstPlayer.uuid} player={firstPlayer} />
                 <div className="flex items-center justify-center">
                   <div className="flex h-10 w-10 items-center justify-center rounded border border-primary bg-primary/15 text-primary sm:h-12 sm:w-12">
                     <Zap className="h-5 w-5" />
                   </div>
                 </div>
-                <PlayerCard player={secondPlayer} />
+                <PlayerCard key={secondPlayer.uuid} player={secondPlayer} />
               </div>
 
               <Card className="border border-border bg-card p-4 sm:p-6">

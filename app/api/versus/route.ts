@@ -36,6 +36,10 @@ interface VersusBody {
   changes?: Record<string, number | undefined>
 }
 
+type UpstreamResult<T> =
+  | { ok: true; body: T }
+  | { ok: false; status: number; message: string }
+
 interface MetricSide {
   value: number
   display: string
@@ -167,6 +171,46 @@ function buildPlayerSummary(player: PlayerStatsBody) {
     lastRanked: player.timestamp?.lastRanked ?? null,
     seasonHighestElo: player.seasonResult?.highest ?? player.eloRate ?? 0,
     seasonLowestElo: player.seasonResult?.lowest ?? player.eloRate ?? 0,
+  }
+}
+
+function isPlayerStatsBody(value: unknown): value is PlayerStatsBody {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Partial<PlayerStatsBody>
+
+  return (
+    typeof candidate.uuid === 'string' &&
+    typeof candidate.nickname === 'string' &&
+    (typeof candidate.eloRate === 'number' || candidate.eloRate === null) &&
+    (typeof candidate.eloRank === 'number' || candidate.eloRank === null)
+  )
+}
+
+function getErrorStatus(error: unknown) {
+  if (!(error instanceof Error)) return 500
+  const match = error.message.match(/API Error:\s*(\d+)/)
+  return match ? Number(match[1]) : 500
+}
+
+async function fetchUpstream<T>(endpoint: string): Promise<UpstreamResult<T>> {
+  try {
+    return { ok: true, body: (await fetchAPI(endpoint)) as T }
+  } catch (error) {
+    return {
+      ok: false,
+      status: getErrorStatus(error),
+      message: error instanceof Error ? error.message : 'Unknown upstream error',
+    }
+  }
+}
+
+function emptyVersus(): VersusBody {
+  return {
+    results: {
+      ranked: {},
+      casual: {},
+    },
+    changes: {},
   }
 }
 
@@ -366,28 +410,54 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [player1Body, player2Body, versusBody] = await Promise.all([
-      fetchAPI(`/users/${encodeURIComponent(player1Identifier)}`),
-      fetchAPI(`/users/${encodeURIComponent(player2Identifier)}`),
-      fetchAPI(
-        `/users/${encodeURIComponent(player1Identifier)}/versus/${encodeURIComponent(
-          player2Identifier,
-        )}`,
+    const [player1Result, player2Result] = await Promise.all([
+      fetchUpstream<{ status?: string; data?: PlayerStatsBody }>(
+        `/users/${encodeURIComponent(player1Identifier)}`,
+      ),
+      fetchUpstream<{ status?: string; data?: PlayerStatsBody }>(
+        `/users/${encodeURIComponent(player2Identifier)}`,
       ),
     ])
 
-    if (isApiError(player1Body) || isApiError(player2Body)) {
+    if (!player1Result.ok || !player2Result.ok) {
+      const failedResult = player1Result.ok ? player2Result : player1Result
+      const status = failedResult.ok ? 500 : failedResult.status
+      if (status === 400 || status === 404) {
+        return Response.json(
+          { error: 'One or both players could not be found' },
+          { status: 404, headers },
+        )
+      }
+
+      return Response.json(
+        { error: 'MCSR Ranked API could not resolve one or both players' },
+        { status: status === 429 ? 429 : 502, headers },
+      )
+    }
+
+    if (
+      isApiError(player1Result.body) ||
+      isApiError(player2Result.body) ||
+      !isPlayerStatsBody(player1Result.body.data) ||
+      !isPlayerStatsBody(player2Result.body.data)
+    ) {
       return Response.json(
         { error: 'One or both players could not be found' },
         { status: 404, headers },
       )
     }
 
-    const player1 = buildPlayerSummary((player1Body as { data: PlayerStatsBody }).data)
-    const player2 = buildPlayerSummary((player2Body as { data: PlayerStatsBody }).data)
-    const versus = isApiError(versusBody)
-      ? null
-      : ((versusBody as { data?: VersusBody }).data ?? null)
+    const player1 = buildPlayerSummary(player1Result.body.data)
+    const player2 = buildPlayerSummary(player2Result.body.data)
+    const versusResult = await fetchUpstream<{ status?: string; data?: VersusBody }>(
+      `/users/${encodeURIComponent(player1.uuid)}/versus/${encodeURIComponent(
+        player2.uuid,
+      )}`,
+    )
+    const versus =
+      versusResult.ok && !isApiError(versusResult.body)
+        ? (versusResult.body.data ?? emptyVersus())
+        : emptyVersus()
     const rankedResults = versus?.results?.ranked
     const h2hPlayer1 = rankedResults?.[player1.uuid] ?? 0
     const h2hPlayer2 = rankedResults?.[player2.uuid] ?? 0

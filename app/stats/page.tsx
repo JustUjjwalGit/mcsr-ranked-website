@@ -7,6 +7,7 @@ import {
   Activity,
   BarChart3,
   Clock,
+  ExternalLink,
   Flame,
   Globe2,
   Search,
@@ -527,6 +528,15 @@ export default function StatsPage() {
                             >
                               <BarChart3 className="h-3.5 w-3.5" />
                               Stats
+                            </a>
+                            <a
+                              href={`https://ranked.mcsr.in/match/${match.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              Official Stats
                             </a>
                           </div>
                         </div>

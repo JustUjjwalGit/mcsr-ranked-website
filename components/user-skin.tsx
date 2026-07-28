@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getPlayerBodyUrl, placeholderUserPath } from '@/lib/player-avatar'
 import { cn } from '@/lib/utils'
 
@@ -20,10 +20,16 @@ export function UserSkin({
   className,
   priority,
 }: UserSkinProps) {
-  const [src, setSrc] = useState(() => getPlayerBodyUrl(uuid, username, size))
+  const nextSrc = getPlayerBodyUrl(uuid, username, size)
+  const [src, setSrc] = useState(() => nextSrc)
+
+  useEffect(() => {
+    setSrc(nextSrc)
+  }, [nextSrc])
 
   return (
     <Image
+      key={nextSrc}
       src={src}
       alt={username ? `${username} full skin` : 'Player full skin'}
       width={size}

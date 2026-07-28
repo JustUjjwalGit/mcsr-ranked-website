@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getPlayerComboUrl, placeholderUserPath } from '@/lib/player-avatar'
 import { cn } from '@/lib/utils'
 
@@ -20,12 +20,18 @@ export function UserComboAvatar({
   className,
   priority,
 }: UserComboAvatarProps) {
+  const nextSrc = getPlayerComboUrl(uuid, username, size)
   const [src, setSrc] = useState(() =>
-    getPlayerComboUrl(uuid, username, size),
+    nextSrc,
   )
+
+  useEffect(() => {
+    setSrc(nextSrc)
+  }, [nextSrc])
 
   return (
     <Image
+      key={nextSrc}
       src={src}
       alt={username ? `${username} combo avatar` : 'Player combo avatar'}
       width={size}

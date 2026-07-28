@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Clock, Search, Star, Trash2 } from 'lucide-react'
+import { Clock, ExternalLink, Play, Search, Star, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { UserAvatar } from '@/components/user-avatar'
@@ -72,12 +72,6 @@ export function HomePersonalHub() {
 
     loadFeaturedVod()
   }, [])
-
-  const twitchEmbedUrl = useMemo(() => {
-    if (!featuredVod || typeof window === 'undefined') return ''
-    const parent = window.location.hostname
-    return `https://player.twitch.tv/?video=${featuredVod.id}&parent=${parent}`
-  }, [featuredVod])
 
   function handleClearRecentSearches() {
     setRecentSearches(clearRecentSearches())
@@ -189,15 +183,28 @@ export function HomePersonalHub() {
       <Card className="overflow-hidden border border-primary/40 bg-card/85 p-0 backdrop-blur-sm">
         {vodLoading ? (
           <div className="aspect-video animate-pulse bg-muted" />
-        ) : twitchEmbedUrl ? (
-          <div className="aspect-video overflow-hidden bg-black">
-            <iframe
-              src={twitchEmbedUrl}
-              title="Daily Featured Match Twitch VOD"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
-              className="h-full w-full border-0 bg-black"
-            />
+        ) : featuredVod ? (
+          <div className="flex aspect-video flex-col items-center justify-center gap-3 bg-black/90 p-5 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/50 bg-primary/20 text-primary">
+              <Play className="h-5 w-5 fill-current" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                Daily Featured Match
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Open the Twitch VOD in a new tab.
+              </p>
+            </div>
+            <a
+              href={featuredVod.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded border border-primary/40 bg-primary/10 px-3 text-xs font-medium text-primary transition hover:border-primary hover:bg-primary/15"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Watch VOD
+            </a>
           </div>
         ) : (
           <div className="flex aspect-video items-center justify-center bg-muted/20 p-4 text-center text-sm text-muted-foreground">

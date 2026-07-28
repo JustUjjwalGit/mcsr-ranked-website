@@ -4,13 +4,15 @@ import {
   isApiError,
   McsrMatch,
   McsrTimeline,
+  McsrUserProfileData,
   parseMatchList,
   parseUserProfile,
 } from '@/lib/mcsr'
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
+import type { PlayerDashboard } from '@/components/improve/types'
 
-const MATCH_COUNT = 30
-const DETAIL_COUNT = 10
+const MATCH_COUNT = 100
+const DETAIL_COUNT = 30
 const BENCHMARK_MATCH_COUNT = 80
 const BENCHMARK_DETAIL_COUNT = 8
 const FAIL_PENALTY_MS = 240_000
@@ -124,6 +126,54 @@ type SegmentSample = {
   match: McsrMatch
   opponent: { uuid: string; nickname?: string | null } | null
   segments: Record<SegmentKey, number | null>
+}
+
+const dashboardSplitDefinitions = [
+  { key: 'enterNether', label: 'Enter Nether', benchmarkSegments: ['overworld'] },
+  {
+    key: 'findBastion',
+    label: 'Enter Bastion',
+    benchmarkSegments: ['overworld', 'findBastion'],
+  },
+  {
+    key: 'findFortress',
+    label: 'Enter Fortress',
+    benchmarkSegments: ['overworld', 'findBastion', 'bastion'],
+  },
+  {
+    key: 'blindTravel',
+    label: 'Blind Travel',
+    benchmarkSegments: ['overworld', 'findBastion', 'bastion', 'fortress', 'blinding'],
+  },
+  {
+    key: 'stronghold',
+    label: 'Stronghold',
+    benchmarkSegments: ['overworld', 'findBastion', 'bastion', 'fortress', 'blinding'],
+  },
+  {
+    key: 'enterEnd',
+    label: 'Enter End',
+    benchmarkSegments: ['overworld', 'findBastion', 'bastion', 'fortress', 'blinding', 'stronghold'],
+  },
+  {
+    key: 'finish',
+    label: 'Dragon Kill',
+    benchmarkSegments: ['overworld', 'findBastion', 'bastion', 'fortress', 'blinding', 'stronghold', 'dragon'],
+  },
+] as const satisfies readonly {
+  key: MilestoneKey
+  label: string
+  benchmarkSegments: readonly SegmentKey[]
+}[]
+
+const endingLabels: Record<SegmentKey, string> = {
+  overworld: 'Nether',
+  findBastion: 'Bastion',
+  bastion: 'Bastion',
+  fortress: 'Fortress',
+  blinding: 'Blind',
+  stronghold: 'Stronghold',
+  dragon: 'End',
 }
 
 const videoLibrary: Record<
@@ -284,6 +334,11 @@ function cleanBenchmark(values: number[], fallback: number) {
   return cleanAverage(values) ?? fallback
 }
 
+function percentage(numerator: number, denominator: number) {
+  if (denominator <= 0) return null
+  return numerator / denominator
+}
+
 function formatSeedType(value?: string | null) {
   if (!value) return 'Unknown'
   return value
@@ -312,6 +367,114 @@ function getSegmentLabel(key: SegmentKey) {
 
 function normalizeVideoKey(value?: string | null) {
   return value?.toLowerCase().replace(/_/g, '') ?? null
+}
+
+function normalizeCategory(value?: string | null) {
+  return formatSeedType(value).replace(/\s+/g, ' ').trim()
+}
+
+function getProfileData(body: unknown) {
+  if (isApiError(body)) return null
+  const data = (body as { data?: McsrUserProfileData }).data
+  return data && typeof data.nickname === 'string' ? data : null
+}
+
+function getSocials(profile: McsrUserProfileData): PlayerDashboard['overview']['socials'] {
+  const socials: PlayerDashboard['overview']['socials'] = []
+  const { connections } = profile
+
+  if (connections?.discord?.name) {
+    socials.push({
+      service: 'Discord',
+      name: connections.discord.name,
+      url: null,
+    })
+  }
+
+  if (connections?.youtube?.name) {
+    socials.push({
+      service: 'YouTube',
+      name: connections.youtube.name,
+      url: connections.youtube.id
+        ? `https://www.youtube.com/channel/${connections.youtube.id}`
+        : null,
+    })
+  }
+
+  if (connections?.twitch?.name) {
+    socials.push({
+      service: 'Twitch',
+      name: connections.twitch.name,
+      url: `https://www.twitch.tv/${connections.twitch.name}`,
+    })
+  }
+
+  return socials
+}
+
+function getPlayerChange(match: McsrMatch, uuid: string) {
+  return match.changes?.find((change) => change.uuid === uuid) ?? null
+}
+
+function getEloAfterMatch(match: McsrMatch, uuid: string) {
+  const change = getPlayerChange(match, uuid)
+  if (!change) return null
+
+  // API match rows expose `eloRate` as the rating before the match in current
+  // responses. Add the deterministic `change` to plot the post-match rating;
+  // placement rows have null changes and fall back to the provided Elo value.
+  if (typeof change.eloRate === 'number' && typeof change.change === 'number') {
+    return change.eloRate + change.change
+  }
+
+  return typeof change.eloRate === 'number' ? change.eloRate : null
+}
+
+function isWin(match: McsrMatch, uuid: string) {
+  return match.result?.uuid === uuid
+}
+
+function isDraw(match: McsrMatch) {
+  return match.result?.uuid == null && !match.forfeited
+}
+
+function summarizeNumberGroups<T extends string>(
+  matches: McsrMatch[],
+  keyGetter: (match: McsrMatch) => T,
+  timeGetter: (match: McsrMatch) => number | null,
+  uuid: string,
+) {
+  const groups = new Map<
+    T,
+    {
+      matches: number
+      wins: number
+      completed: number
+      times: number[]
+    }
+  >()
+
+  for (const match of matches) {
+    const key = keyGetter(match)
+    const current = groups.get(key) ?? {
+      matches: 0,
+      wins: 0,
+      completed: 0,
+      times: [],
+    }
+    const time = timeGetter(match)
+
+    current.matches += 1
+    current.wins += isWin(match, uuid) ? 1 : 0
+    if (time != null) {
+      current.completed += 1
+      current.times.push(time)
+    }
+
+    groups.set(key, current)
+  }
+
+  return groups
 }
 
 function getPlayerTimelines(match: McsrMatch, uuid: string) {
@@ -573,6 +736,7 @@ export async function GET(request: Request) {
     ])
 
     const profile = parseUserProfile(profileBody)
+    const profileData = getProfileData(profileBody)
     const matches = parseMatchList(matchesBody).filter(isRankedDuel)
 
     if (!profile) {
@@ -789,10 +953,206 @@ export async function GET(request: Request) {
     const completedTimes = completedMatches
       .map((match) => getCompletionTime(match, profile.uuid))
       .filter((time): time is number => time != null)
+    const listedCompletedTimes = matches
+      .map((match) => getCompletionTime(match, profile.uuid))
+      .filter((time): time is number => time != null)
     const recentSeeds = new Map<string, number>()
     for (const match of analysisMatches) {
       const label = `${formatSeedType(match.seedType)} / ${formatSeedType(match.bastionType)}`
       recentSeeds.set(label, (recentSeeds.get(label) ?? 0) + 1)
+    }
+
+    const seasonStats = profileData?.statistics?.season
+    const profileMatches = seasonStats?.playedMatches?.ranked ?? matches.length
+    const profileWins = seasonStats?.wins?.ranked ?? matches.filter((match) => isWin(match, profile.uuid)).length
+    const profileLosses =
+      seasonStats?.loses?.ranked ??
+      matches.filter((match) => !isWin(match, profile.uuid) && !isDraw(match)).length
+    const profileForfeits =
+      seasonStats?.forfeits?.ranked ??
+      matches.filter((match) => match.forfeited).length
+    const profileCompletions =
+      seasonStats?.completions?.ranked ?? listedCompletedTimes.length
+    const profileCompletionTime =
+      seasonStats?.completionTime?.ranked ??
+      listedCompletedTimes.reduce((sum, time) => sum + time, 0)
+    const benchmarkLabel =
+      targetBenchmarkSegments.length > 0
+        ? `recent ${targetTier.name} players`
+        : benchmarkSegments.length > 0
+          ? `stronger recent opponents (${targetTier.name} target)`
+          : `${targetTier.name} baseline`
+
+    const milestoneSamples = completedMatches.map((match) => ({
+      match,
+      milestones: extractMilestones(match, profile.uuid),
+    }))
+    const splitRows = dashboardSplitDefinitions.map((split) => {
+      const values = milestoneSamples
+        .map((sample) => sample.milestones[split.key])
+        .filter((time): time is number => time != null && time > 0)
+      const benchmarkParts = split.benchmarkSegments
+        .map(
+          (segmentKey) =>
+            splitComparisons.find((candidate) => candidate.key === segmentKey)
+              ?.benchmarkAverage ?? null,
+        )
+        .filter((time): time is number => time != null)
+      const averageValue = average(values)
+      const benchmarkAverage =
+        benchmarkParts.length === split.benchmarkSegments.length
+          ? benchmarkParts.reduce((sum, value) => sum + value, 0)
+          : null
+      const difference =
+        averageValue != null && benchmarkAverage != null
+          ? averageValue - benchmarkAverage
+          : null
+
+      return {
+        key: split.key,
+        label: split.label,
+        average: averageValue,
+        best: values.length > 0 ? Math.min(...values) : null,
+        benchmarkAverage,
+        averageDifference: difference,
+        samples: values.length,
+      }
+    })
+    const splitPerformance = splitRows.map((row) => {
+      const benchmark = row.benchmarkAverage
+      const averageValue = row.average
+      const ratio =
+        averageValue != null && benchmark != null && benchmark > 0
+          ? benchmark / averageValue
+          : null
+
+      return {
+        key: row.key,
+        label: row.label,
+        average: averageValue,
+        benchmark,
+        // Faster-than-benchmark split averages score above 70, slower split
+        // averages trend downward. The clamp keeps one very slow split from
+        // collapsing the whole radar while missing data remains null.
+        score: ratio == null ? null : Math.max(15, Math.min(100, Math.round(ratio * 70))),
+        samples: row.samples,
+      }
+    })
+
+    const endingCounts = new Map<string, number>()
+    for (const match of analysisMatches) {
+      if (hasCompleted(match, profile.uuid)) continue
+
+      // Failed ending location is derived only from the player's timeline:
+      // explicit death events are mapped to the surrounding milestone window,
+      // otherwise the first missing milestone after real progress is used.
+      const key = failureSegmentKey(match, profile.uuid)
+      if (!key) continue
+
+      const label = endingLabels[key]
+      endingCounts.set(label, (endingCounts.get(label) ?? 0) + 1)
+    }
+    const endingTotal = [...endingCounts.values()].reduce((sum, count) => sum + count, 0)
+
+    const seedGroups = summarizeNumberGroups(
+      matches,
+      (match) => normalizeCategory(match.seed?.overworld ?? match.seedType),
+      (match) => getCompletionTime(match, profile.uuid),
+      profile.uuid,
+    )
+    const seedTypes = [...seedGroups.entries()]
+      .map(([seedType, stats]) => ({
+        seedType,
+        averageCompletion: average(stats.times),
+        matches: stats.matches,
+        wins: stats.wins,
+        completed: stats.completed,
+        winRate: percentage(stats.wins, stats.matches),
+      }))
+      .sort((a, b) => b.matches - a.matches || a.seedType.localeCompare(b.seedType))
+
+    const bastionGroups = summarizeNumberGroups(
+      analysisMatches,
+      (match) => normalizeCategory(match.seed?.nether ?? match.bastionType),
+      (match) => extractMilestones(match, profile.uuid).findBastion,
+      profile.uuid,
+    )
+    const bastionTypes = [...bastionGroups.entries()]
+      .map(([bastionType, stats]) => ({
+        bastionType,
+        matches: stats.matches,
+        wins: stats.wins,
+        completed: stats.completed,
+        winRate: percentage(stats.wins, stats.matches),
+        averageSplit: average(stats.times),
+      }))
+      .sort((a, b) => b.matches - a.matches || a.bastionType.localeCompare(b.bastionType))
+
+    const eloHistory = [...matches]
+      .sort((a, b) => a.date - b.date)
+      .map((match) => {
+        const opponent = getOpponent(match, profile.uuid)
+        const change = getPlayerChange(match, profile.uuid)
+
+        return {
+          matchId: match.id,
+          date: match.date,
+          elo: getEloAfterMatch(match, profile.uuid),
+          change: change?.change ?? null,
+          opponent: opponent?.nickname ?? null,
+        }
+      })
+      .filter((point) => point.elo != null)
+
+    const dashboard: PlayerDashboard = {
+      loadedMatches: matches.length,
+      splitDetailMatches: analysisMatches.length,
+      benchmarkLabel,
+      overview: {
+        uuid: profile.uuid,
+        username: profile.nickname,
+        playerId: profile.uuid,
+        country: profile.country?.toUpperCase() ?? null,
+        socials: profileData ? getSocials(profileData) : [],
+        lastRanked: profileData?.timestamp?.lastRanked ?? null,
+        elo: profile.eloRate,
+        rank: profile.eloRank,
+        tier: currentTier.name,
+        wins: profileWins,
+        losses: profileLosses,
+        draws: matches.filter(isDraw).length,
+        pb: seasonStats?.bestTime?.ranked ?? (listedCompletedTimes.length > 0 ? Math.min(...listedCompletedTimes) : null),
+        averageCompletion:
+          profileCompletions > 0 ? Math.round(profileCompletionTime / profileCompletions) : null,
+        winRate: percentage(profileWins, profileWins + profileLosses),
+        forfeitRate: percentage(profileForfeits, profileMatches),
+      },
+      eloHistory,
+      splitPerformance,
+      deathsBySplit: {
+        total: endingTotal,
+        slices: [...endingCounts.entries()]
+          .map(([label, count]) => ({
+            key: label.toLowerCase(),
+            label,
+            count,
+            percent: percentage(count, endingTotal) ?? 0,
+          }))
+          .sort((a, b) => b.count - a.count),
+      },
+      splitTimes: {
+        completedMatches: completedMatches.length,
+        rows: splitRows,
+      },
+      seedTypes,
+      bastionTypes,
+      dataQuality: [
+        `Recent ranked sample is capped at ${MATCH_COUNT} matches by the upstream API request.`,
+        `Split charts use ${analysisMatches.length} detailed matches because timeline data only exists on match-detail responses.`,
+        ...(eloHistory.length === 0
+          ? ['No numeric Elo changes were available in the loaded matches.']
+          : []),
+      ],
     }
 
     const issueBastionKey =
@@ -840,12 +1200,7 @@ export async function GET(request: Request) {
           comparison: {
             currentTier: currentTier.name,
             targetTier: targetTier.name,
-            benchmarkLabel:
-              targetBenchmarkSegments.length > 0
-                ? `recent ${targetTier.name} players`
-                : benchmarkSegments.length > 0
-                  ? `stronger recent opponents (${targetTier.name} target)`
-                  : `${targetTier.name} baseline`,
+            benchmarkLabel,
             splitComparisons,
           },
           overview: {
@@ -929,6 +1284,7 @@ export async function GET(request: Request) {
               bastionType: formatSeedType(match.bastionType),
             }
           }),
+          dashboard,
           formatted: {
             averageCompletion: formatMatchTime(average(completedTimes) ?? undefined) ?? 'N/A',
             bestCompletion: formatMatchTime(
@@ -939,7 +1295,26 @@ export async function GET(request: Request) {
       },
       { headers },
     )
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (
+      message.includes('API Error: 404') ||
+      (message.includes('API Error: 400') &&
+        message.toLowerCase().includes('invalid user identifier'))
+    ) {
+      return Response.json(
+        { error: 'Player not found.' },
+        { status: 404, headers },
+      )
+    }
+
+    if (message.includes('API Error: 429')) {
+      return Response.json(
+        { error: 'MCSR Ranked API rate limit reached. Try again shortly.' },
+        { status: 429, headers },
+      )
+    }
+
     return Response.json(
       { error: 'Could not analyze that player.' },
       { status: 500, headers },

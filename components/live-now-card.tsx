@@ -84,7 +84,7 @@ function getLiveUrl(match: LiveMatch) {
 export function LiveNowCard() {
   const [matches, setMatches] = useState<LiveMatch[]>([])
   const [onlinePlayers, setOnlinePlayers] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
   async function loadLiveMatches(isRefresh = false) {
@@ -118,6 +118,8 @@ export function LiveNowCard() {
   useEffect(() => {
     void loadLiveMatches()
   }, [])
+
+  const refreshDisabled = Boolean(loading || refreshing)
 
   const visibleMatches = useMemo(
     () =>
@@ -155,7 +157,7 @@ export function LiveNowCard() {
           variant="outline"
           size="sm"
           onClick={() => loadLiveMatches(true)}
-          disabled={loading || refreshing}
+          disabled={refreshDisabled}
           className="w-full lg:w-auto"
         >
           <RefreshCcw className={refreshing ? 'h-4 w-4 animate-spin' : 'h-4 w-4'} />
