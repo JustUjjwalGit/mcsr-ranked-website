@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { RankTier } from '@/components/rank-tier'
 import { UserAvatar } from '@/components/user-avatar'
 import { MatchActions } from '@/components/match-actions'
 import { SiteLoader } from '@/components/site-loader'
@@ -18,9 +19,7 @@ interface TopPlayer {
   rank: number
   username: string
   elo: number
-  wins: number
-  losses: number
-  recentForm?: string
+  country?: string
 }
 
 interface Match {
@@ -34,35 +33,55 @@ interface Match {
   replayPlayer: string
 }
 
+function countryFlag(country: string | undefined) {
+  const code = country?.toUpperCase()
+  if (!code || !/^[A-Z]{2}$/.test(code)) return null
+  return code
+    .split('')
+    .map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)))
+    .join('')
+}
+
 export function Dashboard() {
-  const [topPlayer, setTopPlayer] = useState<TopPlayer | null>(null)
+  const [topPlayers, setTopPlayers] = useState<TopPlayer[]>([])
   const [recentMatches, setRecentMatches] = useState<Match[]>([])
-  const [loading, setLoading] = useState(true)
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true)
+  const [matchesLoading, setMatchesLoading] = useState(true)
+  const [leaderboardError, setLeaderboardError] = useState(false)
 
   useEffect(() => {
     async function loadDashboard() {
-      try {
-        // Fetch leaderboard for top player
-        const leaderboardRes = await fetch('/api/leaderboard')
-        const leaderboardData = await leaderboardRes.json()
-        const users = parseLeaderboardUsers(leaderboardData)
+      const [leaderboardResult, matchesResult] = await Promise.allSettled([
+        fetch('/api/leaderboard?includeStats=false').then(async (response) => {
+          if (!response.ok) throw new Error(`Leaderboard request failed (${response.status})`)
+          return response.json()
+        }),
+        fetch('/api/matches?count=5').then(async (response) => {
+          if (!response.ok) throw new Error(`Matches request failed (${response.status})`)
+          return response.json()
+        }),
+      ])
 
-        if (users[0]) {
-          setTopPlayer(mapLeaderboardEntry(users[0]))
-        }
-
-        const matchesRes = await fetch('/api/matches?count=5')
-        const matchesData = await matchesRes.json()
-        const matches = parseMatchList(matchesData)
-
-        if (matches.length > 0) {
-          setRecentMatches(matches.map((match) => mapMatchToCard(match)))
-        }
-      } catch (error) {
-        console.error('Failed to load dashboard:', error)
-      } finally {
-        setLoading(false)
+      if (leaderboardResult.status === 'fulfilled') {
+        setTopPlayers(
+          parseLeaderboardUsers(leaderboardResult.value)
+            .slice(0, 3)
+            .map((user) => mapLeaderboardEntry(user)),
+        )
+      } else {
+        console.error('Failed to load leaderboard:', leaderboardResult.reason)
+        setLeaderboardError(true)
       }
+      setLeaderboardLoading(false)
+
+      if (matchesResult.status === 'fulfilled') {
+        setRecentMatches(
+          parseMatchList(matchesResult.value).map((match) => mapMatchToCard(match)),
+        )
+      } else {
+        console.error('Failed to load recent matches:', matchesResult.reason)
+      }
+      setMatchesLoading(false)
     }
 
     loadDashboard()
@@ -70,137 +89,73 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6 py-6 sm:space-y-8 sm:py-8">
-      {/* Top Player Section */}
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="md:col-span-1">
-          <div className="rounded-lg border border-primary/40 bg-card/80 p-4 backdrop-blur-sm sm:p-6">
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-                Top 1 Ranked Player
-              </h3>
-              
-              {loading ? (
-                <div className="space-y-4">
-                  <div className="h-32 animate-pulse rounded bg-muted"></div>
-                </div>
-              ) : topPlayer ? (
-                <div className="space-y-4">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-lg border-2 border-primary/50 bg-black/30">
-                      <UserAvatar
-                        uuid={topPlayer.uuid}
-                        username={topPlayer.username}
-                        size={80}
-                        className="h-full w-full rounded-lg"
-                      />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-bold text-lg text-foreground">
-                        {topPlayer.username}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {topPlayer.elo} Elo, Grandmaster
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="space-y-2 border-t border-border pt-4">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Elo</span>
-                      <span className="tabular-figures font-mono font-semibold text-foreground">
-                        {topPlayer.elo.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Wins/Losses</span>
-                      <span className="font-semibold text-foreground">
-                        {topPlayer.wins}/{topPlayer.losses}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Win Rate</span>
-                      <span className="font-semibold text-primary">
-                        {topPlayer.wins > 0
-                          ? (
-                              (topPlayer.wins /
-                                (topPlayer.wins + topPlayer.losses)) *
-                              100
-                            ).toFixed(1)
-                          : '0'}
-                        %
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-              ) : null}
-            </div>
-          </div>
+      <section
+        className="rounded-xl border border-primary/35 bg-card/85 p-4 shadow-[0_16px_38px_rgba(0,0,0,0.18)] backdrop-blur-sm sm:p-6"
+        aria-labelledby="top-ranked-players-heading"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <h2 id="top-ranked-players-heading" className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Top Ranked Players
+          </h2>
+          <Link href="/players" className="text-xs font-medium text-primary hover:underline">
+            Full leaderboard
+          </Link>
         </div>
 
-        {/* Leaderboard Preview */}
-        <div className="md:col-span-2">
-          <div className="rounded-lg border border-primary/40 bg-card/80 p-4 backdrop-blur-sm sm:p-6">
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase text-muted-foreground">
-                Top Ranked Player
-              </h3>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left font-semibold text-muted-foreground">
-                        Rank
-                      </th>
-                      <th className="text-left font-semibold text-muted-foreground">
-                        Player
-                      </th>
-                      <th className="text-right font-semibold text-muted-foreground">
-                        Elo
-                      </th>
-                      <th className="text-right font-semibold text-muted-foreground">
-                        W/L
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                          <SiteLoader label="Loading leaderboard..." />
-                        </td>
-                      </tr>
-                    ) : (
-                      <tr className="border-b border-border hover:bg-muted/50">
-                        <td className="py-3 text-foreground">1</td>
-                        <td className="py-3 text-foreground">
-                          {topPlayer?.username || 'Loading...'}
-                        </td>
-                        <td className="py-3 text-right">
-                          <span className="tabular-figures font-mono font-semibold text-primary">
-                            {topPlayer?.elo.toLocaleString() ?? '—'}
-                          </span>
-                        </td>
-                        <td className="py-3 text-right text-muted-foreground">
-                          {topPlayer ? `${topPlayer.wins}-${topPlayer.losses}` : '-'}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <Link href="/players">
-                <Button variant="outline" className="w-full">
-                  View Players
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+        {leaderboardLoading ? (
+          <SiteLoader label="Loading top ranked players..." className="py-10" />
+        ) : leaderboardError ? (
+          <p className="mt-4 rounded-lg border border-danger/35 bg-[var(--negative-performance-bg)] p-4 text-sm text-danger">
+            The leaderboard is unavailable right now.
+          </p>
+        ) : topPlayers.length === 0 ? (
+          <p className="mt-4 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+            No ranked players were returned.
+          </p>
+        ) : (
+          <ol className="mt-4 grid gap-3 lg:grid-cols-3">
+            {topPlayers.map((player, index) => (
+              <li key={player.uuid}>
+                <Link
+                  href={`/player/${encodeURIComponent(player.username)}`}
+                  className={`grid min-w-0 grid-cols-[auto_48px_minmax(0,1fr)] items-center gap-3 rounded-lg border p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    index === 0
+                      ? 'border-primary/55 bg-primary/10 shadow-[0_8px_24px_rgba(0,0,0,0.16)]'
+                      : 'border-border bg-[var(--secondary-surface)] hover:border-primary/40'
+                  }`}
+                  aria-label={`#${index + 1} ${player.username}, ${player.elo.toLocaleString()} Elo`}
+                >
+                  <span className={`font-mono text-lg font-bold tabular-nums ${index === 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                    #{index + 1}
+                  </span>
+                  <UserAvatar
+                    uuid={player.uuid}
+                    username={player.username}
+                    size={48}
+                    className="h-12 w-12 rounded-md border border-border"
+                  />
+                  <span className="min-w-0">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-semibold text-foreground">{player.username}</span>
+                      {countryFlag(player.country) ? (
+                        <span className="shrink-0 text-base" title={player.country}>
+                          {countryFlag(player.country)}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="mt-1 flex min-w-0 items-center justify-between gap-2">
+                      <RankTier elo={player.elo} iconSize={32} className="text-xs font-semibold" />
+                      <span className="shrink-0 font-mono text-sm font-semibold tabular-nums text-foreground">
+                        {player.elo.toLocaleString()} Elo
+                      </span>
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
 
       {/* Recent Matches */}
       <div>
@@ -211,7 +166,7 @@ export function Dashboard() {
             </h3>
 
             <div className="space-y-2">
-              {loading ? (
+              {matchesLoading ? (
                 <SiteLoader label="Loading recent matches..." className="py-6" />
               ) : recentMatches.length > 0 ? (
                 recentMatches.map((match) => (

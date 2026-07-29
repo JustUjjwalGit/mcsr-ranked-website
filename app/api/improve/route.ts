@@ -9,6 +9,7 @@ import {
   parseUserProfile,
 } from '@/lib/mcsr'
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
+import { getRankTierLabelFromElo } from '@/lib/rank-tiers'
 import type { PlayerDashboard } from '@/components/improve/types'
 import { recommendTutorials } from '@/lib/tutorial-recommendations'
 import { segmentDuration } from '@/lib/improve-segments'
@@ -192,70 +193,7 @@ const endingLabels: Record<SegmentKey, string> = {
   dragon: 'End',
 }
 
-const videoLibrary: Record<
-  string,
-  {
-    title: string
-    url: string
-    focus: string
-    thumbnail: string
-  }
-> = {
-  overworld: {
-    title: 'Ranked RSG Overworld Fundamentals',
-    url: 'https://www.youtube.com/watch?v=egyiA_8FztM',
-    focus: 'Portal building, food routing, and faster first structure decisions.',
-    thumbnail: 'https://img.youtube.com/vi/egyiA_8FztM/hqdefault.jpg',
-  },
-  bastion: {
-    title: 'Ranked RSG Bastion Fundamentals',
-    url: 'https://www.youtube.com/watch?v=CRwiJcWWUlY',
-    focus: 'Cleaner entry, safer routing, piglin control, and faster exits.',
-    thumbnail: 'https://img.youtube.com/vi/CRwiJcWWUlY/hqdefault.jpg',
-  },
-  housing: {
-    title: 'How to SPEEDRUN Bastions - HOUSING',
-    url: 'https://www.youtube.com/watch?v=y7fG2L4FZLU',
-    focus: 'Housing route order, gold pathing, and safe exits.',
-    thumbnail: 'https://img.youtube.com/vi/y7fG2L4FZLU/hqdefault.jpg',
-  },
-  treasure: {
-    title: 'How to SPEEDRUN Bastions - TREASURE',
-    url: 'https://www.youtube.com/watch?v=u4-KxRhNsUc',
-    focus: 'Treasure routing, lava movement, and fast bartering setup.',
-    thumbnail: 'https://img.youtube.com/vi/u4-KxRhNsUc/hqdefault.jpg',
-  },
-  stables: {
-    title: 'How to SPEEDRUN Bastions - STABLES',
-    url: 'https://www.youtube.com/watch?v=fjkkLdWYRmY',
-    focus: 'Stables pathing, gold blocks, and safer piglin handling.',
-    thumbnail: 'https://img.youtube.com/vi/fjkkLdWYRmY/hqdefault.jpg',
-  },
-  bridge: {
-    title: 'How to SPEEDRUN Bastions - BRIDGE',
-    url: 'https://www.youtube.com/watch?v=FoNy438g1GM',
-    focus: 'Bridge route recognition, safe looting, and exit decisions.',
-    thumbnail: 'https://img.youtube.com/vi/FoNy438g1GM/hqdefault.jpg',
-  },
-  fortress: {
-    title: 'Ranked RSG Fortress Guide',
-    url: 'https://www.youtube.com/watch?v=JsFcAeBXVpk',
-    focus: 'Finding fortress faster, safer blaze fights, and rod consistency.',
-    thumbnail: 'https://img.youtube.com/vi/JsFcAeBXVpk/hqdefault.jpg',
-  },
-  blinding: {
-    title: 'Blind Travel and Stronghold Navigation',
-    url: 'https://www.youtube.com/watch?v=0N8Wj8hOVKM',
-    focus: 'Blind distance, angle control, calculator flow, and stronghold entry.',
-    thumbnail: 'https://img.youtube.com/vi/0N8Wj8hOVKM/hqdefault.jpg',
-  },
-  dragon: {
-    title: 'How to One Cycle the Ender Dragon',
-    url: 'https://www.youtube.com/watch?v=u9UVwwWxN_k',
-    focus: 'Fast perch setup, bed timing, and reducing end fight throws.',
-    thumbnail: 'https://img.youtube.com/vi/u9UVwwWxN_k/hqdefault.jpg',
-  },
-}
+const tutorialBastionTypes = new Set(['housing', 'treasure', 'stables', 'bridge'])
 
 const rankBands = [
   { name: 'Iron', min: 0, max: 1599 },
@@ -679,7 +617,7 @@ function getBastionIssueType(issueMatches: IssueMatch[]) {
 
   for (const issue of issueMatches) {
     const key = normalizeVideoKey(issue.match.bastionType)
-    if (!key || !videoLibrary[key]) continue
+    if (!key || !tutorialBastionTypes.has(key)) continue
 
     counts.set(
       key,
@@ -1200,7 +1138,7 @@ export async function GET(request: Request) {
         lastRanked: profileData?.timestamp?.lastRanked ?? null,
         elo: profile.eloRate,
         rank: profile.eloRank,
-        tier: currentTier.name,
+        tier: getRankTierLabelFromElo(profile.eloRate),
         wins: loadedWins,
         losses: loadedLosses,
         draws: loadedDraws,

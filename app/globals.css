@@ -186,11 +186,7 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background:
-      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-      var(--app-background-overlay);
-    background-size: 64px 64px, 64px 64px, auto;
+    background: var(--app-background-overlay);
   }
 }
 
@@ -230,13 +226,12 @@
   }
 
   body::after {
-    background:
-      linear-gradient(rgba(255, 255, 255, 0.026) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px),
-      linear-gradient(rgba(0, 0, 0, 0.76), rgba(0, 0, 0, 0.78)),
-      rgba(0, 0, 0, 0.72);
-    background-size: 52px 52px, 52px 52px, auto, auto;
+    background: var(--app-background-overlay);
   }
+}
+
+.image-rendering-pixelated {
+  image-rendering: pixelated;
 }
 
 @layer components {
@@ -246,6 +241,19 @@
 
   .surface-panel {
     @apply border border-white/10 bg-background/45 backdrop-blur-xl;
+  }
+
+  .comparison-row-cell {
+    @apply border-y border-border bg-[var(--secondary-surface)] px-2 py-3.5 tabular-nums transition first:rounded-l-lg first:border-l last:rounded-r-lg last:border-r;
+  }
+
+  tr:hover > .comparison-row-cell {
+    background: var(--table-row-hover);
+  }
+
+  .comparison-weak-row > .comparison-row-cell {
+    background: var(--negative-performance-bg);
+    border-color: color-mix(in srgb, var(--danger), transparent 68%);
   }
 }
 

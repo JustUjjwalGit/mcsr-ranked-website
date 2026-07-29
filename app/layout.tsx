@@ -1,8 +1,8 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { ParticleNetwork } from '@/components/particle-network'
 import { ThemeProvider } from '@/components/theme-provider'
-import { CursorGlow } from '@/components/cursor-glow'
 import { getThemeBootstrapScript } from '@/lib/theme-system'
 import './globals.css'
 
@@ -35,8 +35,8 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        <CursorGlow />
         <ThemeProvider>
+          <ParticleNetwork />
           <div className="relative z-10">{children}</div>
         </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
