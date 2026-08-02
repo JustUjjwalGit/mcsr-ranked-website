@@ -10,6 +10,7 @@ export async function GET(request: Request) {
   const rateLimitResult = await checkRateLimit(`live:${ip}`)
   const headers = {
     ...getRateLimitHeaders(rateLimitResult),
+    'Cache-Control': 'no-store, max-age=0',
   }
 
   if (!rateLimitResult.success) {
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await fetchAPI('/live')
+    const data = await fetchAPI('/live', { cache: 'no-store' })
     return Response.json(data, { headers })
   } catch {
     return Response.json(
