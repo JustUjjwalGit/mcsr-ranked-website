@@ -15,6 +15,7 @@ const navLinks = [
   { href: '/improve', label: 'Improve' },
   { href: '/seed-finder', label: 'Seeds' },
   { href: '/versus', label: 'Versus' },
+  { href: '/ninjabrain', label: 'Ninja' },
 ]
 
 export function Header() {
@@ -53,7 +54,7 @@ export function Header() {
         </Link>
 
         {/* Navigation */}
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden items-center gap-4 lg:flex xl:gap-6">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -66,7 +67,7 @@ export function Header() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          <form onSubmit={handleSearch} className="hidden items-center gap-2 md:flex">
+          <form onSubmit={handleSearch} className="hidden items-center gap-2 lg:flex">
             <div className="relative">
             <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -89,7 +90,7 @@ export function Header() {
             onClick={() => setMobileMenuOpen((open) => !open)}
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileMenuOpen}
-            className="md:hidden"
+            className="lg:hidden"
           >
             {mobileMenuOpen ? (
               <X className="h-4 w-4" />
@@ -101,7 +102,7 @@ export function Header() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-white/10 bg-background/92 px-3 py-3 shadow-xl shadow-black/40 backdrop-blur-2xl md:hidden">
+        <div className="border-t border-white/10 bg-background/92 px-3 py-3 shadow-xl shadow-black/40 backdrop-blur-2xl lg:hidden">
           <div className="mx-auto max-w-7xl space-y-3">
             <form onSubmit={handleSearch} className="flex gap-2">
               <div className="relative min-w-0 flex-1">

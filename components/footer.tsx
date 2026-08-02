@@ -38,6 +38,9 @@ export function Footer() {
               <a href="/versus" className="block text-muted-foreground hover:text-foreground transition">
                 Versus
               </a>
+              <a href="/ninjabrain" className="block text-muted-foreground hover:text-foreground transition">
+                Ninjabrain Display
+              </a>
             </nav>
           </div>
 
