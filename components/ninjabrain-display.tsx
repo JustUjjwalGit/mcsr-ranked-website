@@ -22,6 +22,7 @@ import {
   RotateCw,
   ShieldCheck,
   ShipWheel,
+  Sun,
   Unplug,
   Undo2,
   Wifi,
@@ -434,7 +435,7 @@ function StandStrongholdView({ data }: { data: StrongholdData }) {
   const primaryDistance = isOverworld ? top.overworldDistance : top.overworldDistance / 8
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-3 pb-4 pt-3 sm:px-5 sm:pb-6">
+    <div className="nb-stand-enhanced mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col overflow-hidden px-2 pb-2 pt-2 sm:px-4 sm:pb-3">
       <section className={cn('relative overflow-hidden rounded-xl bg-[#09090b] shadow-[0_20px_70px_rgba(0,0,0,0.28)]', isOverworld ? 'border border-sky-200/15' : 'border border-red-300/15')}>
         <div
           aria-hidden="true"
@@ -446,23 +447,23 @@ function StandStrongholdView({ data }: { data: StrongholdData }) {
           )}
         />
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-black/35" />
-        <div className="relative grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_13rem] sm:items-stretch sm:p-5">
+        <div className="relative grid gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_11rem] sm:items-stretch sm:p-4">
           <div className="min-w-0">
             <div className="flex items-center justify-between gap-3">
               <p className={cn('font-mono text-[9px] uppercase tracking-[0.22em]', isOverworld ? 'text-sky-100/65' : 'text-red-200/65')}>{isOverworld ? 'Overworld stronghold target' : 'Nether portal target'}</p>
               <button type="button" onClick={() => setDimension(isOverworld ? 'nether' : 'overworld')} className={cn('rounded-md border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.12em] transition', isOverworld ? 'border-red-200/15 bg-red-300/5 text-red-100/55 hover:bg-red-300/10 hover:text-red-100' : 'border-sky-200/15 bg-sky-300/5 text-sky-100/55 hover:bg-sky-300/10 hover:text-sky-100')}>{isOverworld ? 'Show Nether' : 'Show Overworld'}</button>
             </div>
-            <p className={cn('mt-2 whitespace-nowrap font-mono text-[clamp(2.8rem,16vw,6.2rem)] font-black leading-none tracking-[-0.08em] tabular-nums', isOverworld ? 'text-sky-50 drop-shadow-[0_0_30px_rgba(186,230,253,0.16)]' : 'text-red-200 drop-shadow-[0_0_30px_rgba(248,113,113,0.2)]')}>
+            <p className={cn('mt-1.5 whitespace-nowrap font-mono text-[clamp(2rem,11vw,4.6rem)] font-black leading-none tracking-[-0.07em] tabular-nums', isOverworld ? 'text-sky-50 drop-shadow-[0_0_30px_rgba(186,230,253,0.16)]' : 'text-red-200 drop-shadow-[0_0_30px_rgba(248,113,113,0.2)]')}>
               ({primaryX}, {primaryZ})
             </p>
-            <p className={cn('mt-3 font-mono text-sm', isOverworld ? 'text-sky-100/50' : 'text-red-100/50')}>
+            <p className={cn('mt-2 font-mono text-xs', isOverworld ? 'text-sky-100/50' : 'text-red-100/50')}>
               {Math.round(primaryDistance).toLocaleString()} {isOverworld ? 'Overworld' : 'Nether'} blocks away
             </p>
           </div>
 
-          <div className="flex flex-row items-center justify-between gap-4 rounded-lg border border-emerald-400/20 bg-emerald-400/[0.07] p-4 sm:flex-col sm:items-start sm:justify-center">
+          <div className="flex flex-row items-center justify-between gap-3 rounded-lg border border-emerald-400/20 bg-emerald-400/[0.07] p-3 sm:flex-col sm:items-start sm:justify-center">
             <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-emerald-200/60">Certainty</p>
-            <p className="font-mono text-4xl font-black text-emerald-300 tabular-nums sm:text-5xl">
+            <p className="font-mono text-3xl font-black text-emerald-300 tabular-nums sm:text-4xl">
               {percent(top.certainty)}
             </p>
           </div>
@@ -503,7 +504,7 @@ function StandStrongholdView({ data }: { data: StrongholdData }) {
         </div>
       </section>
 
-      <section className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-[#0b0e12]">
+      <section className="nb-stand-predictions mt-2 overflow-hidden rounded-xl border border-white/10 bg-[#0b0e12]">
         <div className="grid grid-cols-[1.25fr_.7fr_.7fr_1fr_1fr] gap-1 border-b border-white/10 bg-white/[0.035] px-2 py-2 font-mono text-[7px] uppercase tracking-[0.08em] text-white/35 sm:px-4 sm:text-[9px] sm:tracking-[0.14em]">
           <span>Overworld</span>
           <span className="text-right">Chance</span>
@@ -522,7 +523,7 @@ function StandStrongholdView({ data }: { data: StrongholdData }) {
             <div
               key={`${prediction.chunkX}-${prediction.chunkZ}`}
               className={cn(
-                'grid grid-cols-[1.25fr_.7fr_.7fr_1fr_1fr] items-center gap-1 border-b border-white/[0.06] px-2 py-2.5 font-mono text-[9px] tabular-nums last:border-b-0 sm:px-4 sm:text-xs',
+                'grid grid-cols-[1.25fr_.7fr_.7fr_1fr_1fr] items-center gap-1 border-b border-white/[0.06] px-2 py-1.5 font-mono text-[8px] tabular-nums last:border-b-0 sm:px-4 sm:text-[10px]',
                 index === 0 ? 'bg-emerald-400/[0.06] text-white' : 'text-white/60',
               )}
             >
@@ -549,7 +550,7 @@ function StandStrongholdView({ data }: { data: StrongholdData }) {
         })}
       </section>
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(18rem,.8fr)]">
+      <div className="nb-stand-secondary mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(16rem,.8fr)]">
         <section className="overflow-hidden rounded-xl border border-white/10 bg-[#0b0e12]">
           <div className="flex items-center justify-between border-b border-white/8 px-3 py-2.5">
             <div>
@@ -597,6 +598,57 @@ function StandStrongholdView({ data }: { data: StrongholdData }) {
   )
 }
 
+function ClassicStandStrongholdView({ data }: { data: StrongholdData }) {
+  const [throwOffset, setThrowOffset] = useState(0)
+  const maximumThrowOffset = Math.max(0, data.eyeThrows.length - 1)
+  const safeThrowOffset = Math.min(throwOffset, maximumThrowOffset)
+  const selectedThrowIndex = data.eyeThrows.length - 1 - safeThrowOffset
+  const selectedThrow = data.eyeThrows[selectedThrowIndex]
+  const predictionRows = Array.from({ length: 5 }, (_, index) => data.predictions[index])
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#292b44] font-sans text-[#f4f3e9]">
+      <div className="grid h-7 shrink-0 grid-cols-[1.35fr_.48fr_.65fr_.9fr_.7fr] items-center border-b border-black/45 bg-[#303536] px-2 text-center text-[clamp(10px,3.2vw,17px)] leading-none">
+        <span>Location</span><span>%</span><span>Dist.</span><span>Nether</span><span>Angle</span>
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {predictionRows.map((prediction, index) => {
+          if (!prediction) return <div key={index} className="h-[clamp(23px,6.5vh,40px)] border-b border-black/35 bg-[#292b44]" />
+          const coordinates = getPredictionCoordinates(prediction)
+          const predictionDirection = travelDirection(data.playerPosition, coordinates.overworldX, coordinates.overworldZ)
+          return (
+            <div key={`${prediction.chunkX}-${prediction.chunkZ}`} className={cn('grid h-[clamp(23px,6.5vh,40px)] grid-cols-[1.35fr_.48fr_.65fr_.9fr_.7fr] items-center border-b border-black/35 px-1.5 text-center font-mono text-[clamp(8px,2.3vw,13px)] tabular-nums', index === 0 ? 'bg-[#30324d] text-white' : 'bg-[#292b44] text-white/70')}>
+              <span className="whitespace-nowrap">({coordinates.overworldX}, {coordinates.overworldZ})</span>
+              <span>{percent(prediction.certainty, 0)}</span>
+              <span>{Math.round(prediction.overworldDistance)}</span>
+              <span className="whitespace-nowrap">({coordinates.netherX}, {coordinates.netherZ})</span>
+              <span>{predictionDirection.angle == null ? '—' : `${predictionDirection.angle.toFixed(1)}°`}</span>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="shrink-0 border-t border-black/60">
+        <div className="grid h-10 grid-cols-[1.35fr_.7fr_.7fr_.7fr] items-center bg-[#303536] px-2 text-[clamp(10px,3vw,16px)]">
+          <span className="font-semibold">Ender eye throws</span>
+          <button type="button" onClick={() => setThrowOffset(Math.min(safeThrowOffset + 1, maximumThrowOffset))} disabled={!selectedThrow || safeThrowOffset >= maximumThrowOffset} className="h-full text-white/70 transition hover:text-white disabled:opacity-25">Undo</button>
+          <button type="button" onClick={() => setThrowOffset(Math.max(safeThrowOffset - 1, 0))} disabled={!selectedThrow || safeThrowOffset === 0} className="h-full text-white/70 transition hover:text-white disabled:opacity-25">Redo</button>
+          <span className="text-center text-[10px] text-emerald-300/70">LIVE</span>
+        </div>
+        <div className="grid h-5 grid-cols-3 items-center border-b border-black/45 bg-[#303536] px-2 text-center text-[clamp(9px,2.7vw,14px)] leading-none"><span>x</span><span>z</span><span>Angle</span></div>
+        <div className="grid h-[clamp(32px,9vh,52px)] grid-cols-3 items-center border-b border-black/35 bg-[#292b44] px-2 text-center font-mono text-[clamp(9px,2.6vw,14px)] tabular-nums">
+          {selectedThrow ? (
+            <><span>{coordinate(selectedThrow.xInOverworld, 1)}</span><span>{coordinate(selectedThrow.zInOverworld, 1)}</span><span>{selectedThrow.angle.toFixed(3)}°</span></>
+          ) : (
+            <span className="col-span-3 text-white/30">Waiting for an eye throw</span>
+          )}
+        </div>
+        <div className="h-[clamp(20px,5vh,34px)] border-b border-black/35 bg-[#292b44]" />
+      </div>
+    </div>
+  )
+}
+
 function NinjabrainStandConsole({
   snapshot,
   status,
@@ -610,21 +662,33 @@ function NinjabrainStandConsole({
   mode: NinjabrainDisplayMode
   onExit: () => void
 }) {
+  const [standTheme, setStandTheme] = useState<'enhanced' | 'classic'>('enhanced')
+  const isClassic = standTheme === 'classic'
+
   return (
-    <section className="flex min-h-[100svh] flex-col bg-[#05070a] text-white">
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-white/10 bg-[#080b0f]/95 px-3 py-2.5 backdrop-blur sm:px-5">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <StatusPill status={status} />
-          <span className="truncate font-mono text-[9px] uppercase tracking-[0.16em] text-white/35">
-            Ninjabrain Bot {version || 'API'} · {modeLabels[mode]}
-          </span>
+    <section className={cn('flex h-[100svh] min-h-0 flex-col overflow-hidden text-white', isClassic ? 'bg-[#292b44]' : 'bg-[#05070a]')}>
+      <div className={cn('z-10 flex shrink-0 items-center justify-between gap-2', isClassic ? 'h-7 border-b border-black/50 bg-[#20212c] px-1.5' : 'border-b border-white/10 bg-[#080b0f]/95 px-2 py-1.5 backdrop-blur sm:px-4')}>
+        <div className="flex min-w-0 items-center gap-2">
+          {isClassic ? (
+            <><span className="text-sm font-semibold text-white">Ninjabrain Bot</span><span className="text-[10px] text-white/35">v{version || 'API'}</span></>
+          ) : (
+            <><StatusPill status={status} /><span className="truncate font-mono text-[8px] uppercase tracking-[0.14em] text-white/35">Ninjabrain Bot {version || 'API'} · {modeLabels[mode]}</span></>
+          )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <BoatPill snapshot={snapshot} />
+        <div className="flex shrink-0 items-center gap-1.5">
+          {isClassic ? <ShipWheel className="h-4 w-4 text-emerald-400" /> : <BoatPill snapshot={snapshot} />}
+          <button
+            type="button"
+            onClick={() => setStandTheme(isClassic ? 'enhanced' : 'classic')}
+            className={cn('inline-flex items-center justify-center rounded-md transition', isClassic ? 'h-6 gap-1 px-1.5 text-[10px] text-white/70 hover:bg-white/10 hover:text-white' : 'h-8 gap-1.5 border border-white/10 bg-white/5 px-2 text-[9px] text-white/60 hover:bg-white/10 hover:text-white')}
+            aria-label={isClassic ? 'Use enhanced stand theme' : 'Use Ninjabrain classic theme'}
+          >
+            <Sun className="h-4 w-4" /><span>{isClassic ? 'Enhanced' : 'NBB'}</span>
+          </button>
           <button
             type="button"
             onClick={onExit}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-white/60 transition hover:bg-white/10 hover:text-white"
+            className={cn('inline-flex items-center justify-center rounded-md transition', isClassic ? 'h-6 w-6 text-white/70 hover:bg-white/10 hover:text-white' : 'h-8 w-8 border border-white/10 bg-white/5 text-white/60 hover:bg-white/10 hover:text-white')}
             aria-label="Exit stand view"
           >
             <X className="h-4 w-4" />
@@ -632,18 +696,18 @@ function NinjabrainStandConsole({
         </div>
       </div>
 
-      {mode === 'stronghold' && <StandStrongholdView data={snapshot.stronghold} />}
+      {mode === 'stronghold' && (isClassic ? <ClassicStandStrongholdView data={snapshot.stronghold} /> : <StandStrongholdView data={snapshot.stronghold} />)}
       {mode === 'blind' && <BlindView data={snapshot.blind} />}
       {mode === 'divine' && <DivineView data={snapshot.divine} />}
       {mode === 'all-advancements' && <AllAdvancementsView data={snapshot.allAdvancements} />}
 
-      <div className="mt-auto">
+      {!isClassic && <div className="mt-auto shrink-0">
         <MessageStrip messages={snapshot.informationMessages.informationMessages} />
-        <div className="flex items-center justify-between gap-3 border-t border-white/8 px-4 py-2 font-mono text-[8px] uppercase tracking-[0.14em] text-white/25">
+        <div className="flex items-center justify-between gap-3 border-t border-white/8 px-3 py-1 font-mono text-[7px] uppercase tracking-[0.12em] text-white/25">
           <span>F3+C updates automatically</span>
           <span>Screen stays awake</span>
         </div>
-      </div>
+      </div>}
     </section>
   )
 }
@@ -756,7 +820,7 @@ function SetupSteps() {
 
 export function NinjabrainDisplay() {
   const [address, setAddress] = useState('')
-  const [showAddress, setShowAddress] = useState(false)
+  const [showAddress, setShowAddress] = useState(true)
   const [connectedAddress, setConnectedAddress] = useState('')
   const [status, setStatus] = useState<ConnectionStatus>('idle')
   const [snapshot, setSnapshot] = useState<NinjabrainSnapshot>(emptyNinjabrainSnapshot)
@@ -964,7 +1028,7 @@ export function NinjabrainDisplay() {
     <>
       {!focusMode && <Header />}
       {focusMode ? (
-        <div className="fixed inset-0 z-[100] overflow-y-auto bg-[#05070a]">{standConsoleView}</div>
+        <div className="fixed inset-0 z-[100] overflow-hidden bg-[#05070a]">{standConsoleView}</div>
       ) : (
         <main className="mx-auto max-w-7xl px-3 py-5 sm:px-4 sm:py-8">
           <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-card/78 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.32)] backdrop-blur-2xl sm:p-8">

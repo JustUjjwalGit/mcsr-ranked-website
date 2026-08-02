@@ -383,3 +383,16 @@
 ::selection {
   @apply bg-primary text-primary-foreground;
 }
+
+/* Keep the phone stand display inside one viewport without scrolling. */
+@media (max-height: 680px) {
+  .nb-stand-enhanced .nb-stand-predictions {
+    display: none;
+  }
+}
+
+@media (max-height: 520px) {
+  .nb-stand-enhanced .nb-stand-secondary {
+    display: none;
+  }
+}
