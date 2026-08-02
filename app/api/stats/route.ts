@@ -1,4 +1,4 @@
-import { fetchAPI } from '@/lib/api'
+import { fetchAPIWithCache } from '@/lib/api'
 import {
   McsrMatch,
   isApiError,
@@ -10,13 +10,56 @@ import {
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
 
 const RECENT_MATCH_COUNT = 100
-const tierDefinitions = [
-  { tier: 'Iron', min: -Infinity, max: 1599 },
-  { tier: 'Gold', min: 1600, max: 1799 },
-  { tier: 'Diamond', min: 1800, max: 1999 },
-  { tier: 'Netherite', min: 2000, max: 2199 },
-  { tier: 'Grandmaster', min: 2200, max: Infinity },
+const DISTRIBUTION_MATCH_PAGES = 4
+
+// Latest complete public distribution currently available.
+// Source: https://mcsrrankedtracker.vercel.app/stats
+const SEASON_9_DISTRIBUTION = [
+  { rank: 'Coal', players: 1538, minimumElo: 0, maximumElo: 599, color: '#535b61' },
+  { rank: 'Iron', players: 2837, minimumElo: 600, maximumElo: 899, color: '#a7b0b6' },
+  { rank: 'Gold', players: 2386, minimumElo: 900, maximumElo: 1199, color: '#e3ad2f' },
+  { rank: 'Emerald', players: 1180, minimumElo: 1200, maximumElo: 1499, color: '#4bd46a' },
+  { rank: 'Diamond', players: 453, minimumElo: 1500, maximumElo: 1999, color: '#48d9d2' },
+  { rank: 'Netherite', players: 58, minimumElo: 2000, maximumElo: null, color: '#e64368' },
 ] as const
+const SEASON_9_DISTRIBUTION_TOTAL = SEASON_9_DISTRIBUTION.reduce(
+  (total, bucket) => total + bucket.players,
+  0,
+)
+
+async function fetchRecentRankedMatches(requestedSeason: string | null) {
+  const matches: McsrMatch[] = []
+  let before: number | null = null
+
+  for (let page = 0; page < DISTRIBUTION_MATCH_PAGES; page += 1) {
+    const params = new URLSearchParams({
+      count: String(RECENT_MATCH_COUNT),
+      type: '2',
+      excludedecay: 'true',
+    })
+    if (requestedSeason) params.set('season', requestedSeason)
+    if (before != null) params.set('before', String(before))
+
+    try {
+      const body = await fetchAPIWithCache(`/matches?${params.toString()}`)
+      const pageMatches = parseMatchList(body).filter((match) => !match.decayed)
+      if (pageMatches.length === 0) break
+
+      matches.push(...pageMatches)
+      const nextBefore = Math.min(...pageMatches.map((match) => match.id))
+      if (before === nextBefore || pageMatches.length < RECENT_MATCH_COUNT) break
+      before = nextBefore
+    } catch (error) {
+      if (matches.length === 0) throw error
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Could not load an additional stats sample page:', error)
+      }
+      break
+    }
+  }
+
+  return matches
+}
 
 function formatDate(timestamp: number) {
   return new Date(timestamp * 1000).toLocaleDateString()
@@ -82,35 +125,38 @@ export async function GET(request: Request) {
   const requestedSeason = resolveSeasonQuery(searchParams.get('season'))
 
   try {
-    const params = new URLSearchParams()
-    params.set('count', String(RECENT_MATCH_COUNT))
-    params.set('type', '2')
-    if (requestedSeason) params.set('season', requestedSeason)
-
     const leaderboardEndpoint = requestedSeason
       ? `/leaderboard?season=${requestedSeason}`
       : '/leaderboard'
 
     const [liveResult, leaderboardResult, matchesResult] = await Promise.allSettled([
-      fetchAPI('/live'),
-      fetchAPI(leaderboardEndpoint),
-      fetchAPI(`/matches?${params.toString()}`),
+      fetchAPIWithCache('/live'),
+      fetchAPIWithCache(leaderboardEndpoint),
+      fetchRecentRankedMatches(requestedSeason),
     ])
+
     const liveBody = liveResult.status === 'fulfilled' ? liveResult.value : null
     const leaderboardBody =
       leaderboardResult.status === 'fulfilled' ? leaderboardResult.value : null
-    const matchesBody = matchesResult.status === 'fulfilled' ? matchesResult.value : null
+    const matches = matchesResult.status === 'fulfilled' ? matchesResult.value : []
 
-    if (isApiError(leaderboardBody)) {
+    if (process.env.NODE_ENV === 'development') {
+      for (const result of [liveResult, leaderboardResult, matchesResult]) {
+        if (result.status === 'rejected') {
+          console.error('Stats upstream request failed:', result.reason)
+        }
+      }
+    }
+
+    if (isApiError(liveBody) && isApiError(leaderboardBody) && matches.length === 0) {
       return Response.json(
-        { error: 'Leaderboard data is currently unavailable.' },
-        { status: 502, headers },
+        { error: 'Failed to fetch stats' },
+        { status: 500, headers },
       )
     }
 
     const users = parseLeaderboardUsers(leaderboardBody)
     const season = parseLeaderboardSeason(leaderboardBody)
-    const matches = parseMatchList(matchesBody).filter((match) => !match.decayed)
     const last24Hours = Math.floor(Date.now() / 1000) - 24 * 60 * 60
     const recentMatches = matches.filter((match) => match.date >= last24Hours)
     const liveData = !isApiError(liveBody)
@@ -135,30 +181,11 @@ export async function GET(request: Request) {
             rankValues.reduce((sum, rank) => sum + rank, 0) / rankValues.length,
           )
         : 0
-    const rankDistribution = tierDefinitions.map((definition) => {
-      const players = eloValues.filter(
-        (elo) => elo >= definition.min && elo <= definition.max,
-      ).length
-      return {
-        tier: definition.tier,
-        players,
-        percent: users.length > 0 ? players / users.length : 0,
-      }
-    })
-    const bucketSize = 100
-    const firstBucket =
-      eloValues.length > 0 ? Math.floor(Math.min(...eloValues) / bucketSize) * bucketSize : 0
-    const lastBucket =
-      eloValues.length > 0 ? Math.floor(Math.max(...eloValues) / bucketSize) * bucketSize : 0
-    const eloHistogram = []
-    for (let start = firstBucket; start <= lastBucket; start += bucketSize) {
-      eloHistogram.push({
-        label: `${start}-${start + bucketSize - 1}`,
-        start,
-        end: start + bucketSize - 1,
-        players: eloValues.filter((elo) => elo >= start && elo < start + bucketSize).length,
-      })
-    }
+    const eloDistribution = SEASON_9_DISTRIBUTION.map((bucket) => ({
+      ...bucket,
+      percentage:
+        Math.round((bucket.players / SEASON_9_DISTRIBUTION_TOTAL) * 1000) / 10,
+    }))
 
     const countryCounts = new Map<string, number>()
     for (const user of users) {
@@ -217,12 +244,15 @@ export async function GET(request: Request) {
           recentActivity: recentMatches.length,
           liveMatches: liveData?.liveMatches?.length ?? 0,
           topCountries,
+          eloDistribution,
+          distributionSample: SEASON_9_DISTRIBUTION_TOTAL,
+          distributionMatches: 0,
+          distributionFrom: null,
+          distributionTo: null,
+          distributionSeason: 9,
+          distributionSource: 'https://mcsrrankedtracker.vercel.app/stats',
           topGainers: buildEloMovers(recentMatches, 'up'),
           topLosers: buildEloMovers(recentMatches, 'down'),
-          rankDistribution,
-          eloHistogram,
-          lastUpdated: new Date().toISOString(),
-          distributionLabel: 'Players in the loaded official leaderboard',
           seasonInfo,
         },
       },

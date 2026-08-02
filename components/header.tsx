@@ -32,7 +32,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-[var(--header)] shadow-[0_10px_40px_rgba(0,0,0,0.18)] backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-background/72 shadow-[0_10px_40px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-3 sm:px-4 md:h-20">
         {/* Logo */}
         <Link

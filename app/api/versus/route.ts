@@ -1,4 +1,4 @@
-import { fetchAPI } from '@/lib/api'
+import { ApiRequestError, fetchAPI } from '@/lib/api'
 import { getApiErrorMessage, isApiError } from '@/lib/mcsr'
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
 
@@ -501,6 +501,13 @@ export async function GET(request: Request) {
       { headers },
     )
   } catch (error) {
+    if (error instanceof ApiRequestError && error.status === 400) {
+      return Response.json(
+        { error: 'One or both players could not be found' },
+        { status: 404, headers },
+      )
+    }
+
     return Response.json(
       {
         error:

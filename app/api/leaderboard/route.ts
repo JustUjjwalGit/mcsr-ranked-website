@@ -32,7 +32,6 @@ export async function GET(request: Request) {
   
   const season = resolveSeasonQuery(searchParams.get('season'))
   const country = searchParams.get('country')
-  const includeStats = searchParams.get('includeStats') !== 'false'
 
   try {
     let endpoint = '/leaderboard'
@@ -48,7 +47,7 @@ export async function GET(request: Request) {
     const data = await fetchAPI(endpoint)
 
     const users = parseLeaderboardUsers(data)
-    if (includeStats && users.length > 0 && data?.data && typeof data.data === 'object') {
+    if (users.length > 0 && data?.data && typeof data.data === 'object') {
       const enriched = await enrichLeaderboardUsersWithStats(users, 30)
       ;(data.data as { users: typeof enriched }).users = enriched
     }

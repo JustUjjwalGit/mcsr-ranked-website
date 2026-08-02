@@ -32,7 +32,6 @@ export interface PlayerDashboard {
     elo: number | null
     change: number | null
     opponent: string | null
-    result: 'Win' | 'Loss' | 'Draw' | null
   }>
   splitPerformance: Array<{
     key: string
@@ -80,6 +79,4 @@ export interface PlayerDashboard {
     averageSplit: number | null
   }>
   dataQuality: string[]
-  skillBand: 'Insufficient data' | 'Beginner' | 'Developing' | 'Intermediate' | 'Advanced' | 'Expert'
-  humanSummary: string
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Clock, ExternalLink, Search, Star, Trash2 } from 'lucide-react'
+import { Clock, Search, Star, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { UserAvatar } from '@/components/user-avatar'
@@ -40,13 +40,13 @@ export function HomePersonalHub() {
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [favorites, setFavorites] = useState<FavoritePlayer[]>([])
   const [featuredVod, setFeaturedVod] = useState<FeaturedVod | null>(null)
+  const [twitchParent, setTwitchParent] = useState('')
   const [vodLoading, setVodLoading] = useState(true)
-  const [embedParent, setEmbedParent] = useState('')
 
   useEffect(() => {
     setRecentSearches(getRecentSearches())
     setFavorites(getFavoritePlayers())
-    setEmbedParent(window.location.hostname)
+    setTwitchParent(window.location.hostname)
   }, [])
 
   useEffect(() => {
@@ -184,37 +184,18 @@ export function HomePersonalHub() {
 
       <Card className="overflow-hidden border border-primary/40 bg-card/85 p-0 backdrop-blur-sm">
         {vodLoading ? (
-          <div className="aspect-video animate-pulse bg-muted" />
-        ) : featuredVod && embedParent ? (
-          <>
-            <div className="aspect-video w-full bg-black">
-              <iframe
-                src={`https://player.twitch.tv/?video=v${featuredVod.id}&parent=${encodeURIComponent(embedParent)}&autoplay=true&muted=true`}
-                title="Daily featured MCSR Ranked match on Twitch"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-                className="h-full w-full border-0"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2.5">
-              <p className="text-xs font-medium text-muted-foreground">Daily Featured Match</p>
-              <a
-                href={featuredVod.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Open on Twitch
-              </a>
-            </div>
-          </>
-        ) : featuredVod ? (
-          <div className="flex aspect-video items-center justify-center bg-muted/20 p-4 text-sm text-muted-foreground">
-            Preparing Twitch player…
-          </div>
+          <div className="h-48 animate-pulse bg-muted sm:h-56" />
+        ) : featuredVod && twitchParent ? (
+          <iframe
+            src={`https://player.twitch.tv/?video=v${encodeURIComponent(featuredVod.id)}&parent=${encodeURIComponent(twitchParent)}&autoplay=true&muted=true&controls=false`}
+            title="Daily featured MCSR Ranked match"
+            className="h-48 w-full border-0 bg-black sm:h-56"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            loading="eager"
+          />
         ) : (
-          <div className="flex aspect-video items-center justify-center bg-muted/20 p-4 text-center text-sm text-muted-foreground">
+          <div className="flex h-48 items-center justify-center bg-muted/20 p-4 text-center text-sm text-muted-foreground sm:h-56">
             No Twitch VOD found right now.
           </div>
         )}

@@ -1,4 +1,4 @@
-import { fetchAPI } from '@/lib/api'
+import { ApiRequestError, fetchAPI } from '@/lib/api'
 import {
   formatMatchTime,
   isApiError,
@@ -9,19 +9,17 @@ import {
   parseUserProfile,
 } from '@/lib/mcsr'
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
-import { getRankTierLabelFromElo } from '@/lib/rank-tiers'
 import type { PlayerDashboard } from '@/components/improve/types'
-import { recommendTutorials } from '@/lib/tutorial-recommendations'
-import { segmentDuration } from '@/lib/improve-segments'
-import { buildHumanSummary } from '@/lib/human-summary'
+import {
+  consistencyScore,
+  PRACTICE_FOCUS_RULES,
+} from '@/lib/improve-focus'
+import { recommendTutorials, type LearningLevel } from '@/lib/tutorial-recommendations'
 
 const MATCH_COUNT = 100
 const DETAIL_COUNT = 30
 const BENCHMARK_MATCH_COUNT = 80
 const BENCHMARK_DETAIL_COUNT = 8
-const FAIL_PENALTY_MS = 240_000
-const DEATH_PENALTY_MS = 360_000
-const LOW_SAMPLE_PENALTY_MS = 60_000
 const deathEvents = ['projectelo.timeline.death']
 
 const milestoneDefinitions = [
@@ -128,59 +126,53 @@ type IssueMatch = {
 }
 type SegmentSample = {
   match: McsrMatch
-  playerUuid: string
   opponent: { uuid: string; nickname?: string | null } | null
   segments: Record<SegmentKey, number | null>
 }
 
 const dashboardSplitDefinitions = [
-  {
-    key: 'enterNether',
-    label: 'Enter Nether',
-    to: 'enterNether',
-    previous: [],
-  },
+  { key: 'enterNether', from: null, label: 'Enter Nether', benchmarkSegments: ['overworld'] },
   {
     key: 'findBastion',
+    from: 'enterNether',
     label: 'Enter Bastion',
-    to: 'findBastion',
-    previous: ['enterNether'],
+    benchmarkSegments: ['findBastion'],
   },
   {
     key: 'findFortress',
+    from: 'findBastion',
     label: 'Enter Fortress',
-    to: 'findFortress',
-    previous: ['enterNether', 'findBastion', 'lootBastion'],
+    benchmarkSegments: ['bastion'],
   },
   {
     key: 'blindTravel',
+    from: 'findFortress',
     label: 'Blind Travel',
-    to: 'blindTravel',
-    previous: ['enterNether', 'findBastion', 'lootBastion', 'findFortress', 'firstRod'],
+    benchmarkSegments: ['fortress', 'blinding'],
   },
   {
     key: 'stronghold',
+    from: 'blindTravel',
     label: 'Stronghold',
-    to: 'stronghold',
-    previous: ['blindTravel'],
+    benchmarkSegments: ['stronghold'],
   },
   {
     key: 'enterEnd',
+    from: 'stronghold',
     label: 'Enter End',
-    to: 'enterEnd',
-    previous: ['stronghold'],
+    benchmarkSegments: ['stronghold'],
   },
   {
     key: 'finish',
+    from: 'enterEnd',
     label: 'Dragon Kill',
-    to: 'finish',
-    previous: ['enterEnd'],
+    benchmarkSegments: ['dragon'],
   },
 ] as const satisfies readonly {
   key: MilestoneKey
+  from: MilestoneKey | null
   label: string
-  to: MilestoneKey
-  previous: readonly MilestoneKey[]
+  benchmarkSegments: readonly SegmentKey[]
 }[]
 
 const endingLabels: Record<SegmentKey, string> = {
@@ -193,7 +185,78 @@ const endingLabels: Record<SegmentKey, string> = {
   dragon: 'End',
 }
 
-const tutorialBastionTypes = new Set(['housing', 'treasure', 'stables', 'bridge'])
+const videoLibrary: Record<
+  string,
+  {
+    title: string
+    url: string
+    focus: string
+    thumbnail: string
+  }
+> = {
+  overworld: {
+    title: 'Ranked RSG Overworld Fundamentals',
+    url: 'https://www.youtube.com/watch?v=egyiA_8FztM',
+    focus: 'Portal building, food routing, and faster first structure decisions.',
+    thumbnail: 'https://img.youtube.com/vi/egyiA_8FztM/hqdefault.jpg',
+  },
+  bastion: {
+    title: 'Ranked RSG Bastion Fundamentals',
+    url: 'https://www.youtube.com/watch?v=CRwiJcWWUlY',
+    focus: 'Cleaner entry, safer routing, piglin control, and faster exits.',
+    thumbnail: 'https://img.youtube.com/vi/CRwiJcWWUlY/hqdefault.jpg',
+  },
+  housing: {
+    title: 'How to SPEEDRUN Bastions - HOUSING',
+    url: 'https://www.youtube.com/watch?v=y7fG2L4FZLU',
+    focus: 'Housing route order, gold pathing, and safe exits.',
+    thumbnail: 'https://img.youtube.com/vi/y7fG2L4FZLU/hqdefault.jpg',
+  },
+  treasure: {
+    title: 'How to SPEEDRUN Bastions - TREASURE',
+    url: 'https://www.youtube.com/watch?v=u4-KxRhNsUc',
+    focus: 'Treasure routing, lava movement, and fast bartering setup.',
+    thumbnail: 'https://img.youtube.com/vi/u4-KxRhNsUc/hqdefault.jpg',
+  },
+  stables: {
+    title: 'How to SPEEDRUN Bastions - STABLES',
+    url: 'https://www.youtube.com/watch?v=fjkkLdWYRmY',
+    focus: 'Stables pathing, gold blocks, and safer piglin handling.',
+    thumbnail: 'https://img.youtube.com/vi/fjkkLdWYRmY/hqdefault.jpg',
+  },
+  bridge: {
+    title: 'How to SPEEDRUN Bastions - BRIDGE',
+    url: 'https://www.youtube.com/watch?v=FoNy438g1GM',
+    focus: 'Bridge route recognition, safe looting, and exit decisions.',
+    thumbnail: 'https://img.youtube.com/vi/FoNy438g1GM/hqdefault.jpg',
+  },
+  fortress: {
+    title: 'Ranked RSG Fortress Guide',
+    url: 'https://www.youtube.com/watch?v=JsFcAeBXVpk',
+    focus: 'Finding fortress faster, safer blaze fights, and rod consistency.',
+    thumbnail: 'https://img.youtube.com/vi/JsFcAeBXVpk/hqdefault.jpg',
+  },
+  blinding: {
+    title: 'Blind Travel Fundamentals',
+    url: 'https://www.youtube.com/watch?v=0N8Wj8hOVKM',
+    focus: 'Blind distance, angle control, calculator flow, and accurate exits.',
+    thumbnail: 'https://img.youtube.com/vi/0N8Wj8hOVKM/hqdefault.jpg',
+  },
+  stronghold: {
+    title: 'MCSR Ranked Explanations | The Stronghold (ft. Doogile)',
+    url: 'https://www.youtube.com/watch?v=iI8bntMXJzE',
+    focus: 'Pre-emptive navigation, stronghold reading, portal-room direction, and faster entry.',
+    thumbnail: 'https://img.youtube.com/vi/iI8bntMXJzE/hqdefault.jpg',
+  },
+  dragon: {
+    title: 'How to One Cycle the Ender Dragon',
+    url: 'https://www.youtube.com/watch?v=u9UVwwWxN_k',
+    focus: 'Fast perch setup, bed timing, and reducing end fight throws.',
+    thumbnail: 'https://img.youtube.com/vi/u9UVwwWxN_k/hqdefault.jpg',
+  },
+}
+
+const bastionVideoKeys = ['treasure', 'housing', 'stables', 'bridge'] as const
 
 const rankBands = [
   { name: 'Iron', min: 0, max: 1599 },
@@ -289,20 +352,6 @@ function cleanBenchmark(values: number[], fallback: number) {
 function percentage(numerator: number, denominator: number) {
   if (denominator <= 0) return null
   return numerator / denominator
-}
-
-function classifySkill(
-  matches: number,
-  elo: number | null,
-  completionRate: number,
-): PlayerDashboard['skillBand'] {
-  if (matches < 5) return 'Insufficient data'
-  const rating = elo ?? 0
-  if (rating >= 2200 && completionRate >= 0.75) return 'Expert'
-  if (rating >= 2000 && completionRate >= 0.6) return 'Advanced'
-  if (rating >= 1800 && completionRate >= 0.45) return 'Intermediate'
-  if (rating >= 1600 || completionRate >= 0.3) return 'Developing'
-  return 'Beginner'
 }
 
 function formatSeedType(value?: string | null) {
@@ -476,28 +525,6 @@ function extractSegments(match: McsrMatch, uuid: string) {
   ) as Record<SegmentKey, number | null>
 }
 
-function extractDashboardSegments(match: McsrMatch, uuid: string) {
-  const milestones = extractMilestones(match, uuid)
-
-  return Object.fromEntries(
-    dashboardSplitDefinitions.map((definition) => {
-      const end = milestones[definition.to]
-      if (end == null) return [definition.key, null]
-
-      // Each displayed value is a per-match segment, never a subtraction of
-      // aggregate averages. For branching Nether routes, use the latest valid
-      // earlier milestone (for example loot bastion or fortress) that actually
-      // occurred before this milestone.
-      const duration = segmentDuration(
-        end,
-        definition.previous.map((key) => milestones[key]),
-        definition.previous.length === 0,
-      )
-      return [definition.key, duration]
-    }),
-  ) as Record<MilestoneKey, number | null>
-}
-
 function validSegmentTime(key: SegmentKey, value: number | null | undefined) {
   if (value == null) return null
   const bounds = segmentBounds[key]
@@ -617,7 +644,7 @@ function getBastionIssueType(issueMatches: IssueMatch[]) {
 
   for (const issue of issueMatches) {
     const key = normalizeVideoKey(issue.match.bastionType)
-    if (!key || !tutorialBastionTypes.has(key)) continue
+    if (!key || !videoLibrary[key]) continue
 
     counts.set(
       key,
@@ -680,7 +707,6 @@ async function fetchTargetBenchmarkSamples(
         .filter((player) => hasCompleted(match, player.uuid))
         .map((player) => ({
           match,
-          playerUuid: player.uuid,
           opponent: player,
           segments: extractSegments(match, player.uuid),
         })),
@@ -719,14 +745,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [profileBody, matchesBody] = await Promise.all([
-      fetchAPI(`/users/${encodeURIComponent(username)}`),
-      fetchAPI(`/users/${encodeURIComponent(username)}/matches?count=${MATCH_COUNT}`),
-    ])
-
+    const profileBody = await fetchAPI(
+      `/users/${encodeURIComponent(username)}`,
+    )
     const profile = parseUserProfile(profileBody)
     const profileData = getProfileData(profileBody)
-    const matches = parseMatchList(matchesBody).filter(isRankedDuel)
 
     if (!profile) {
       return Response.json(
@@ -734,6 +757,13 @@ export async function GET(request: Request) {
         { status: 404, headers },
       )
     }
+
+    // Resolve the nickname once, then use the stable canonical UUID for all
+    // dependent requests. This also keeps searches working after name changes.
+    const matchesBody = await fetchAPI(
+      `/users/${encodeURIComponent(profile.uuid)}/matches?count=${MATCH_COUNT}`,
+    )
+    const matches = parseMatchList(matchesBody).filter(isRankedDuel)
 
     const playerElo = profile.eloRate ?? 0
     const currentTier = getRankBand(playerElo)
@@ -756,7 +786,6 @@ export async function GET(request: Request) {
 
     const playerSegments: SegmentSample[] = completedMatches.map((match) => ({
       match,
-      playerUuid: profile.uuid,
       opponent: null,
       segments: extractSegments(match, profile.uuid),
     }))
@@ -772,7 +801,6 @@ export async function GET(request: Request) {
       return [
         {
           match,
-          playerUuid: opponent.uuid,
           opponent,
           segments: extractSegments(match, opponent.uuid),
         },
@@ -832,15 +860,13 @@ export async function GET(request: Request) {
           : null
       const failCount = failCounts.get(segment.key) ?? 0
       const deathCount = deathCounts.get(segment.key) ?? 0
-      const lowSamplePenalty =
-        (failCount > 0 || deathCount > 0) && playerValues.length <= 1
-          ? LOW_SAMPLE_PENALTY_MS
-          : 0
-      const score =
-        Math.max(difference ?? 0, 0) +
-        failCount * FAIL_PENALTY_MS +
-        deathCount * DEATH_PENALTY_MS +
-        lowSamplePenalty
+      // Keep pace and consistency as separate signals. Adding multi-minute
+      // fail/death penalties to a split delta made a faster-than-benchmark
+      // segment look like the primary pacing weakness.
+      const positiveDifference = Math.max(difference ?? 0, 0)
+      const positiveGap = Math.max(gapPercent ?? 0, 0)
+      const paceScore = positiveDifference * (1 + Math.min(positiveGap, 1))
+      const issueScore = consistencyScore(failCount, deathCount)
 
       return {
         key: segment.key,
@@ -851,19 +877,35 @@ export async function GET(request: Request) {
         gapPercent,
         failCount,
         deathCount,
-        score,
+        paceScore,
+        consistencyScore: issueScore,
         samples: playerValues.length,
         benchmarkSamples: benchmarkValues.length >= 3 ? benchmarkValues.length : 0,
       }
     })
 
-    const weakestSplit =
-      [...splitComparisons]
-        .filter(
-          (split) =>
-            split.difference != null || split.failCount > 0 || split.deathCount > 0,
-        )
-        .sort((a, b) => b.score - a.score)[0] ?? null
+    const measuredPaceWeaknesses = splitComparisons.filter(
+      (split) =>
+        split.difference != null &&
+        split.gapPercent != null &&
+        split.difference >= PRACTICE_FOCUS_RULES.minimumSlowdownMs &&
+        split.gapPercent >= PRACTICE_FOCUS_RULES.minimumGapPercent,
+    )
+    const weakestPaceSplit = [...measuredPaceWeaknesses].sort(
+      (a, b) =>
+        b.paceScore - a.paceScore ||
+        (b.difference ?? 0) - (a.difference ?? 0),
+    )[0]
+    const weakestConsistencySplit = [...splitComparisons]
+      .filter((split) => split.failCount > 0 || split.deathCount > 0)
+      .sort(
+        (a, b) =>
+          b.consistencyScore - a.consistencyScore ||
+          (b.difference ?? Number.NEGATIVE_INFINITY) -
+            (a.difference ?? Number.NEGATIVE_INFINITY),
+      )[0]
+    const weakestSplit = weakestPaceSplit ?? weakestConsistencySplit ?? null
+    const weaknessBasis = weakestPaceSplit ? 'pace' : weakestSplit ? 'consistency' : null
 
     const weaknessIssueMatches: IssueMatch[] = weakestSplit
       ? [
@@ -954,6 +996,14 @@ export async function GET(request: Request) {
     }
 
     const seasonStats = profileData?.statistics?.season
+    const profileMatches = seasonStats?.playedMatches?.ranked ?? matches.length
+    const profileWins = seasonStats?.wins?.ranked ?? matches.filter((match) => isWin(match, profile.uuid)).length
+    const profileLosses =
+      seasonStats?.loses?.ranked ??
+      matches.filter((match) => !isWin(match, profile.uuid) && !isDraw(match)).length
+    const profileForfeits =
+      seasonStats?.forfeits?.ranked ??
+      matches.filter((match) => match.forfeited).length
     const profileCompletions =
       seasonStats?.completions?.ranked ?? listedCompletedTimes.length
     const profileCompletionTime =
@@ -968,21 +1018,28 @@ export async function GET(request: Request) {
 
     const milestoneSamples = completedMatches.map((match) => ({
       match,
-      segments: extractDashboardSegments(match, profile.uuid),
+      milestones: extractMilestones(match, profile.uuid),
     }))
     const splitRows = dashboardSplitDefinitions.map((split) => {
       const values = milestoneSamples
-        .map((sample) => sample.segments[split.key])
+        .map((sample) => {
+          const end = sample.milestones[split.key]
+          const start = split.from ? sample.milestones[split.from] : 0
+          return end != null && start != null && end >= start ? end - start : null
+        })
         .filter((time): time is number => time != null && time > 0)
-      const targetValues = targetBenchmarkSegments
-        .map((sample) => extractDashboardSegments(sample.match, sample.playerUuid)[split.key])
-        .filter((time): time is number => time != null && time > 0)
-      const opponentValues = benchmarkSegments
-        .map((sample) => extractDashboardSegments(sample.match, sample.playerUuid)[split.key])
-        .filter((time): time is number => time != null && time > 0)
+      const benchmarkParts = split.benchmarkSegments
+        .map(
+          (segmentKey) =>
+            splitComparisons.find((candidate) => candidate.key === segmentKey)
+              ?.benchmarkAverage ?? null,
+        )
+        .filter((time): time is number => time != null)
       const averageValue = average(values)
-      const benchmarkValues = targetValues.length >= 3 ? targetValues : opponentValues
-      const benchmarkAverage = benchmarkValues.length > 0 ? cleanAverage(benchmarkValues) : null
+      const benchmarkAverage =
+        benchmarkParts.length === split.benchmarkSegments.length
+          ? benchmarkParts.reduce((sum, value) => sum + value, 0)
+          : null
       const difference =
         averageValue != null && benchmarkAverage != null
           ? averageValue - benchmarkAverage
@@ -1054,7 +1111,7 @@ export async function GET(request: Request) {
     const bastionGroups = summarizeNumberGroups(
       analysisMatches,
       (match) => normalizeCategory(match.seed?.nether ?? match.bastionType),
-      (match) => extractDashboardSegments(match, profile.uuid).findBastion,
+      (match) => extractMilestones(match, profile.uuid).findBastion,
       profile.uuid,
     )
     const bastionTypes = [...bastionGroups.entries()]
@@ -1073,11 +1130,6 @@ export async function GET(request: Request) {
       .map((match) => {
         const opponent = getOpponent(match, profile.uuid)
         const change = getPlayerChange(match, profile.uuid)
-        const result: PlayerDashboard['eloHistory'][number]['result'] = isDraw(match)
-          ? 'Draw'
-          : isWin(match, profile.uuid)
-            ? 'Win'
-            : 'Loss'
 
         return {
           matchId: match.id,
@@ -1085,45 +1137,9 @@ export async function GET(request: Request) {
           elo: getEloAfterMatch(match, profile.uuid),
           change: change?.change ?? null,
           opponent: opponent?.nickname ?? null,
-          result,
         }
       })
       .filter((point) => point.elo != null)
-
-    const loadedWins = matches.filter((match) => isWin(match, profile.uuid)).length
-    const loadedDraws = matches.filter(isDraw).length
-    const loadedLosses = Math.max(matches.length - loadedWins - loadedDraws, 0)
-    const loadedForfeits = matches.filter((match) => match.forfeited).length
-    const deathsBySplit: PlayerDashboard['deathsBySplit'] = {
-      total: endingTotal,
-      slices: [...endingCounts.entries()]
-        .map(([label, count]) => ({
-          key: label.toLowerCase(),
-          label,
-          count,
-          percent: percentage(count, endingTotal) ?? 0,
-        }))
-        .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)),
-    }
-    const loadedWinRate = percentage(loadedWins, loadedWins + loadedLosses)
-    const loadedForfeitRate = percentage(loadedForfeits, matches.length)
-    const skillBand = classifySkill(
-      matches.length,
-      profile.eloRate,
-      percentage(completedMatches.length, analysisMatches.length) ?? 0,
-    )
-    const humanSummary = buildHumanSummary({
-      username: profile.nickname,
-      matches: matches.length,
-      wins: loadedWins,
-      losses: loadedLosses,
-      draws: loadedDraws,
-      splitRows,
-      seedTypes,
-      bastionTypes,
-      deaths: deathsBySplit,
-      forfeitRate: loadedForfeitRate,
-    })
 
     const dashboard: PlayerDashboard = {
       loadedMatches: matches.length,
@@ -1138,19 +1154,29 @@ export async function GET(request: Request) {
         lastRanked: profileData?.timestamp?.lastRanked ?? null,
         elo: profile.eloRate,
         rank: profile.eloRank,
-        tier: getRankTierLabelFromElo(profile.eloRate),
-        wins: loadedWins,
-        losses: loadedLosses,
-        draws: loadedDraws,
+        tier: currentTier.name,
+        wins: profileWins,
+        losses: profileLosses,
+        draws: matches.filter(isDraw).length,
         pb: seasonStats?.bestTime?.ranked ?? (listedCompletedTimes.length > 0 ? Math.min(...listedCompletedTimes) : null),
         averageCompletion:
           profileCompletions > 0 ? Math.round(profileCompletionTime / profileCompletions) : null,
-        winRate: loadedWinRate,
-        forfeitRate: loadedForfeitRate,
+        winRate: percentage(profileWins, profileWins + profileLosses),
+        forfeitRate: percentage(profileForfeits, profileMatches),
       },
       eloHistory,
       splitPerformance,
-      deathsBySplit,
+      deathsBySplit: {
+        total: endingTotal,
+        slices: [...endingCounts.entries()]
+          .map(([label, count]) => ({
+            key: label.toLowerCase(),
+            label,
+            count,
+            percent: percentage(count, endingTotal) ?? 0,
+          }))
+          .sort((a, b) => b.count - a.count),
+      },
       splitTimes: {
         completedMatches: completedMatches.length,
         rows: splitRows,
@@ -1164,8 +1190,6 @@ export async function GET(request: Request) {
           ? ['No numeric Elo changes were available in the loaded matches.']
           : []),
       ],
-      skillBand,
-      humanSummary,
     }
 
     const issueBastionKey =
@@ -1175,16 +1199,31 @@ export async function GET(request: Request) {
     const bestBastion =
       issueBastionKey ??
       (lastCompleted ? normalizeVideoKey(lastCompleted.bastionType) : null)
-
-    const recommendations = recommendTutorials({
-      level: skillBand,
-      weakSplit: weakestSplit?.key ?? null,
-      weakSplitSamples: weakestSplit?.samples ?? 0,
-      weakSplitGap: weakestSplit?.difference ?? null,
-      dominantEnding: deathsBySplit.slices[0]?.label ?? null,
-      forfeitRate: loadedForfeitRate,
-      bastionType: bestBastion,
-    })
+    const learningLevel: LearningLevel =
+      playerElo < 900
+        ? 'Beginner'
+        : playerElo < 1200
+          ? 'Developing'
+          : playerElo < 1500
+            ? 'Intermediate'
+            : playerElo < 2000
+              ? 'Advanced'
+              : 'Expert'
+    const dominantEnding = [...endingCounts.entries()].sort(
+      (a, b) => b[1] - a[1],
+    )[0]?.[0] ?? null
+    const recommendations = recommendTutorials(
+      {
+        level: learningLevel,
+        weakSplit: weakestSplit?.key ?? null,
+        weakSplitSamples: weakestSplit?.samples ?? 0,
+        weakSplitGap: weakestSplit?.difference ?? null,
+        dominantEnding,
+        forfeitRate: dashboard.overview.forfeitRate,
+        bastionType: bestBastion,
+      },
+      4,
+    )
 
     return Response.json(
       {
@@ -1230,6 +1269,7 @@ export async function GET(request: Request) {
                 gapPercent: weakestSplit.gapPercent,
                 failCount: weakestSplit.failCount,
                 deathCount: weakestSplit.deathCount,
+                basis: weaknessBasis,
                 bastionType:
                   weakestSplit.key === 'bastion' && issueBastionKey
                     ? formatSeedType(issueBastionKey)

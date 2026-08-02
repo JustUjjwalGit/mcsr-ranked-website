@@ -1,9 +1,8 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import { ParticleNetwork } from '@/components/particle-network'
 import { ThemeProvider } from '@/components/theme-provider'
-import { getThemeBootstrapScript } from '@/lib/theme-system'
+import { ParticleNetwork } from '@/components/particle-network'
 import './globals.css'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -27,17 +26,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <head>
-        <script
-          id="mcsr-theme-bootstrap-script"
-          dangerouslySetInnerHTML={{ __html: getThemeBootstrapScript() }}
-        />
-      </head>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark`}>
       <body className="font-sans antialiased">
         <ThemeProvider>
-          <ParticleNetwork />
-          <div className="relative z-10">{children}</div>
+          <div className="site-background" aria-hidden="true">
+            <ParticleNetwork />
+          </div>
+          <div className="site-content">{children}</div>
         </ThemeProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

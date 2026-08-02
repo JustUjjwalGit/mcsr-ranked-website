@@ -2,6 +2,17 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.mcsrranked.com'
 const API_KEY = process.env.MCSR_API_KEY
 
+export class ApiRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly body: string,
+    public readonly endpoint: string,
+  ) {
+    super(`API Error: ${status} - ${body}`)
+    this.name = 'ApiRequestError'
+  }
+}
+
 export async function fetchAPI(
   endpoint: string,
   options: RequestInit = {}
@@ -25,7 +36,7 @@ export async function fetchAPI(
       if (process.env.NODE_ENV === 'development') {
         console.error(`API error ${response.status} for ${endpoint}:`, errorText)
       }
-      throw new Error(`API Error: ${response.status} - ${errorText}`)
+      throw new ApiRequestError(response.status, errorText, endpoint)
     }
 
     const json = await response.json()

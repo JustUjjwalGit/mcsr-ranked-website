@@ -221,7 +221,7 @@ export function ThemeSwitcher() {
                     <input
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Search curated themes..."
+                      placeholder={`Search ${themePresets.length} curated themes...`}
                       className="h-10 w-full rounded border border-border bg-input pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
@@ -244,11 +244,19 @@ export function ThemeSwitcher() {
                             : 'border-border bg-muted/30',
                         )}
                       >
-                        <div className="grid h-12 grid-cols-4 overflow-hidden rounded border border-border">
-                          <span style={{ backgroundColor: theme.colors.background }} />
-                          <span style={{ backgroundColor: theme.colors.card }} />
-                          <span style={{ backgroundColor: theme.colors.foreground }} />
-                          <span style={{ backgroundColor: theme.colors.primary }} />
+                        <div className="overflow-hidden rounded border border-border">
+                          <div className="h-10" style={{ background: theme.backgroundImage }} />
+                          <div className="flex h-3">
+                            {[
+                              theme.colors.background,
+                              theme.colors.card,
+                              theme.colors.primary,
+                              theme.colors.accent,
+                              theme.colors.foreground,
+                            ].map((color, index) => (
+                              <span key={`${color}-${index}`} className="flex-1" style={{ backgroundColor: color }} />
+                            ))}
+                          </div>
                         </div>
                         <div className="mt-3 flex items-start justify-between gap-2">
                           <div className="min-w-0">

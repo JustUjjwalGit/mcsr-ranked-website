@@ -15,7 +15,19 @@ import {
   Trophy,
   User,
 } from 'lucide-react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { Header } from '@/components/header'
+import { RankIcon } from '@/components/rank-icon'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { UserAvatar } from '@/components/user-avatar'
 import { SiteLoader } from '@/components/site-loader'
@@ -27,16 +39,6 @@ import {
 } from '@/lib/mcsr'
 import { saveRecentSearch } from '@/lib/player-memory'
 import { cn } from '@/lib/utils'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
 
 interface CountryBucket {
   country: string
@@ -61,19 +63,20 @@ interface GlobalStats {
   recentActivity: number
   liveMatches: number
   topCountries: CountryBucket[]
-  rankDistribution: Array<{
-    tier: string
+  eloDistribution: Array<{
+    rank: string
     players: number
-    percent: number
+    percentage: number
+    minimumElo: number
+    maximumElo: number | null
+    color: string
   }>
-  eloHistogram: Array<{
-    label: string
-    start: number
-    end: number
-    players: number
-  }>
-  lastUpdated: string
-  distributionLabel: string
+  distributionSample: number
+  distributionMatches: number
+  distributionFrom: number | null
+  distributionTo: number | null
+  distributionSeason?: number
+  distributionSource?: string
   seasonInfo?: {
     name: string
     number: number
@@ -82,112 +85,92 @@ interface GlobalStats {
   }
 }
 
-const tierColors = [
-  'var(--chart-3)',
-  'var(--warning)',
-  'var(--chart-2)',
-  'var(--chart-1)',
-  'var(--chart-5)',
-]
-
-function DistributionCharts({
-  stats,
-  loading,
-}: {
-  stats: GlobalStats | null
-  loading: boolean
-}) {
-  const [reducedMotion, setReducedMotion] = useState(false)
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const sync = () => setReducedMotion(query.matches)
-    sync()
-    query.addEventListener('change', sync)
-    return () => query.removeEventListener('change', sync)
-  }, [])
-
-  if (loading) {
+function EloDistributionChart({ data }: { data: GlobalStats['eloDistribution'] }) {
+  if (data.length === 0 || data.every((bucket) => bucket.players === 0)) {
     return (
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="h-80 animate-pulse rounded-lg border border-border bg-[var(--skeleton)]" />
-        <div className="h-80 animate-pulse rounded-lg border border-border bg-[var(--skeleton)]" />
-      </section>
-    )
-  }
-  if (!stats || stats.rankDistribution.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-border bg-card/75 p-6 text-center text-sm text-muted-foreground">
-        Official leaderboard distribution data is currently unavailable.
+      <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+        No recent ranked-player sample is available.
       </div>
     )
-  }
-
-  const tooltipStyle = {
-    background: 'var(--chart-tooltip)',
-    border: '1px solid var(--border)',
-    borderRadius: 6,
-    color: 'var(--foreground)',
-    fontSize: 12,
   }
 
   return (
-    <section className="grid min-w-0 gap-4 lg:grid-cols-2">
-      <div className="min-w-0 rounded-lg border border-border bg-card/95 p-4">
-        <h2 className="font-mono text-sm font-semibold uppercase text-primary">Rank Distribution</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {(stats.leaderboardSample ?? stats.leaderboardPlayers).toLocaleString()} players · {stats.distributionLabel}
-        </p>
-        <div className="mt-3 h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.rankDistribution} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
-              <CartesianGrid stroke="var(--chart-grid)" vertical={false} strokeDasharray="3 4" />
-              <XAxis dataKey="tier" stroke="var(--chart-axis)" tick={{ fontSize: 10 }} interval={0} />
-              <YAxis stroke="var(--chart-axis)" tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip
-                contentStyle={tooltipStyle}
-                formatter={(value, _name, item) => {
-                  const row = item.payload as GlobalStats['rankDistribution'][number]
-                  return [`${Number(value).toLocaleString()} (${formatPercent(row.percent)})`, 'Players']
-                }}
-              />
-              <Bar dataKey="players" radius={[4, 4, 0, 0]} isAnimationActive={!reducedMotion} animationDuration={650} activeBar={{ stroke: 'var(--foreground)', strokeWidth: 1 }}>
-                {stats.rankDistribution.map((row, index) => (
-                  <Cell key={row.tier} fill={tierColors[index % tierColors.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+    <div className="w-full">
+      <div
+        className="h-64 w-full"
+        role="img"
+        aria-label={`Season 9 players by MCSR rank: ${data
+          .map((bucket) => `${bucket.rank} ${bucket.players}`)
+          .join(', ')}`}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 24, right: 8, bottom: 4, left: -8 }}>
+            <CartesianGrid
+              stroke="var(--border)"
+              strokeDasharray="3 5"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="rank"
+              tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
+            />
+            <YAxis
+              allowDecimals={false}
+              width={40}
+              tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
+            />
+            <Tooltip
+              cursor={{ fill: 'var(--muted)', opacity: 0.35 }}
+              content={({ active, payload }) => {
+                const bucket = payload?.[0]?.payload as
+                  | GlobalStats['eloDistribution'][number]
+                  | undefined
+                if (!active || !bucket) return null
+                const range =
+                  bucket.maximumElo == null
+                    ? `${bucket.minimumElo.toLocaleString()}+ Elo`
+                    : `${bucket.minimumElo.toLocaleString()}–${bucket.maximumElo.toLocaleString()} Elo`
 
-      <div className="min-w-0 rounded-lg border border-border bg-card/95 p-4">
-        <h2 className="font-mono text-sm font-semibold uppercase text-primary">Elo Distribution</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Fixed 100-Elo buckets · updated {new Date(stats.lastUpdated).toLocaleString()}
-        </p>
-        {stats.eloHistogram.length > 0 ? (
-          <div className="mt-3 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.eloHistogram} margin={{ top: 8, right: 8, left: -16, bottom: 8 }}>
-                <CartesianGrid stroke="var(--chart-grid)" vertical={false} strokeDasharray="3 4" />
-                <XAxis dataKey="label" stroke="var(--chart-axis)" tick={{ fontSize: 9 }} minTickGap={18} />
-                <YAxis stroke="var(--chart-axis)" tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  formatter={(value) => [Number(value).toLocaleString(), 'Players']}
-                  labelFormatter={(label) => `${label} Elo`}
-                />
-                <Bar dataKey="players" fill="var(--chart-1)" radius={[3, 3, 0, 0]} isAnimationActive={!reducedMotion} animationDuration={650} activeBar={{ fill: 'var(--chart-2)' }} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <div className="mt-3 flex h-64 items-center justify-center rounded border border-dashed border-border text-sm text-muted-foreground">
-            No numeric Elo values were included.
-          </div>
-        )}
+                return (
+                  <div className="rounded-md border border-border bg-popover p-3 text-sm shadow-xl">
+                    <p className="font-semibold text-foreground">{bucket.rank}</p>
+                    <p className="mt-1 text-muted-foreground">{range}</p>
+                    <p className="mt-2 font-mono font-semibold text-foreground tabular-figures">
+                      {bucket.players.toLocaleString()} players ·{' '}
+                      {bucket.percentage.toFixed(1)}%
+                    </p>
+                  </div>
+                )
+              }}
+            />
+            <Bar
+              dataKey="players"
+              name="Players"
+              radius={[6, 6, 2, 2]}
+              isAnimationActive
+              animationDuration={750}
+            >
+              {data.map((bucket) => (
+                <Cell key={bucket.rank} fill={bucket.color} />
+              ))}
+              <LabelList
+                dataKey="players"
+                position="top"
+                fill="var(--foreground)"
+                fontSize={11}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
-    </section>
+      <div className="mt-1 grid grid-cols-6 gap-1" aria-hidden="true">
+        {data.map((bucket) => (
+          <div key={bucket.rank} className="flex justify-center">
+            <RankIcon tier={bucket.rank} size={22} />
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -357,6 +340,7 @@ export default function StatsPage() {
   const searchParams = useSearchParams()
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null)
   const [globalLoading, setGlobalLoading] = useState(true)
+  const [globalError, setGlobalError] = useState('')
   const [query, setQuery] = useState('')
   const [searchedUsername, setSearchedUsername] = useState('')
   const [player, setPlayer] = useState<PlayerProfile | null>(null)
@@ -368,11 +352,17 @@ export default function StatsPage() {
     async function loadGlobalStats() {
       try {
         setGlobalLoading(true)
+        setGlobalError('')
         const response = await fetch('/api/stats')
         const data = await response.json()
-        if (data.stats) setGlobalStats(data.stats)
+        if (!response.ok || !data.stats) {
+          throw new Error(data.error || 'Global statistics are unavailable.')
+        }
+        setGlobalStats(data.stats)
       } catch (loadError) {
         console.error('Failed to load global stats:', loadError)
+        setGlobalStats(null)
+        setGlobalError('Could not load the current MCSR Ranked data. Please try again later.')
       } finally {
         setGlobalLoading(false)
       }
@@ -498,8 +488,6 @@ export default function StatsPage() {
               {error}
             </div>
           )}
-
-          <DistributionCharts stats={globalStats} loading={globalLoading} />
 
           {playerLoading ? (
             <div className="border border-border bg-card p-10">
@@ -703,6 +691,10 @@ export default function StatsPage() {
                   <h3 className="font-semibold text-foreground">Global Snapshot</h3>
                   {globalLoading ? (
                     <SiteLoader label="Loading global stats..." className="py-8" />
+                  ) : globalError ? (
+                    <p className="mt-4 rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-300">
+                      {globalError}
+                    </p>
                   ) : (
                     <div className="mt-4 space-y-3">
                       <GlobalMetric
@@ -725,6 +717,26 @@ export default function StatsPage() {
                         label="Highest Elo"
                         value={(globalStats?.highestElo ?? 0).toLocaleString()}
                       />
+                      <div className="rounded-md border border-border bg-background/45 p-3">
+                        <p className="text-sm font-semibold text-foreground">
+                          Rank distribution — Season 9
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {(globalStats?.distributionSample ?? 0).toLocaleString()} ranked players in the latest complete public dataset
+                        </p>
+                        <EloDistributionChart data={globalStats?.eloDistribution ?? []} />
+                        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                          Latest-season distribution data is not currently available, so this chart uses Season 9 data from{' '}
+                          <a
+                            href={globalStats?.distributionSource ?? 'https://mcsrrankedtracker.vercel.app/stats'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary underline-offset-2 hover:underline"
+                          >
+                            MCSR Ranked Tracker
+                          </a>.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -796,6 +808,10 @@ export default function StatsPage() {
                 <h3 className="font-semibold text-foreground">Global Snapshot</h3>
                 {globalLoading ? (
                   <SiteLoader label="Loading global stats..." className="py-8" />
+                ) : globalError ? (
+                  <p className="mt-4 rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-300">
+                    {globalError}
+                  </p>
                 ) : (
                   <div className="mt-4 grid gap-3">
                     <GlobalMetric
@@ -813,6 +829,26 @@ export default function StatsPage() {
                       label="Average Rank"
                       value={(globalStats?.averageRank ?? 0).toLocaleString()}
                     />
+                    <div className="rounded-md border border-border bg-background/45 p-3">
+                      <p className="text-sm font-semibold text-foreground">
+                        Rank distribution — Season 9
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {(globalStats?.distributionSample ?? 0).toLocaleString()} ranked players in the latest complete public dataset
+                      </p>
+                      <EloDistributionChart data={globalStats?.eloDistribution ?? []} />
+                      <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                        Latest-season distribution data is not currently available, so this chart uses Season 9 data from{' '}
+                        <a
+                          href={globalStats?.distributionSource ?? 'https://mcsrrankedtracker.vercel.app/stats'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline-offset-2 hover:underline"
+                        >
+                          MCSR Ranked Tracker
+                        </a>.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
