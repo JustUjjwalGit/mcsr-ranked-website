@@ -1,4 +1,4 @@
-export const SITE_URL = 'https://mcsrrankedtracker.vercel.app'
+export const SITE_URL = 'https://mcsrtracker.vercel.app'
 
 export const SITE_NAME = 'MCSR Ranked Tracker'
 
