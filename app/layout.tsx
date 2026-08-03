@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ParticleNetwork } from '@/components/particle-network'
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site'
 import './globals.css'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -12,12 +13,57 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'MCSR Ranked - Minecraft Speedrunning Leaderboards',
-  description: 'Track top Minecraft speedrunners, view global leaderboards, match history, and competitive rankings',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'MCSR Ranked Tracker – Leaderboards, Matches & Player Stats',
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  category: 'gaming',
+  alternates: {
+    canonical: '/',
+  },
   icons: {
     icon: '/Gold_Icon.png',
     apple: '/Gold_Icon.png',
   },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: '/',
+    siteName: SITE_NAME,
+    title: 'MCSR Ranked Tracker – Leaderboards, Matches & Player Stats',
+    description: SITE_DESCRIPTION,
+    images: [
+      {
+        url: '/mcsr-ranked-social.png',
+        width: 1732,
+        height: 908,
+        alt: 'MCSR Ranked Tracker – leaderboards, live matches, and player stats',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MCSR Ranked Tracker – Leaderboards, Matches & Player Stats',
+    description: SITE_DESCRIPTION,
+    images: ['/mcsr-ranked-social.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+      'max-video-preview': -1,
+    },
+  },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 }
 
 export default function RootLayout({
