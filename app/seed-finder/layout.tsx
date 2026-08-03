@@ -1,9 +1,9 @@
 import { buildPageMetadata } from '@/lib/metadata'
 
 export const metadata = buildPageMetadata({
-  title: 'Minecraft Speedrun Seed Finder',
+  title: 'Filtered Seed Glitchless Seed Finder',
   description:
-    'Find and inspect Minecraft speedrun seeds from MCSR Ranked matches with player, match, result, and seed details in one place.',
+    'Request current FSG filters, fresh token-bearing seeds, and unlimited practice seeds from the FSG Online Database.',
   path: '/seed-finder',
 })
 

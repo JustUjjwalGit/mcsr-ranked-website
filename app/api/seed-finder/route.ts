@@ -1,301 +1,251 @@
-import { execFile } from 'node:child_process'
-import { constants, accessSync, existsSync } from 'node:fs'
-import path from 'node:path'
-import { promisify } from 'node:util'
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/ratelimit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-type SeedProfileKey =
-  | 'filteredseed'
-  | 'twoironlootvillagelight'
-  | 'fsg-power-village-looting-sword'
-  | 'power-village-plusplus'
-  | 'co-op-fsg'
-  | 'messing-around'
+const FSG_BASE_URL = 'https://www.filteredseed.com'
+const FILTER_CACHE_MS = 60 * 60 * 1000
 
-interface SeedProfile {
-  key: SeedProfileKey
-  label: string
-  dir: string
+interface OnlineFilter {
+  id: string
+  displayName: string
+  supportedVersions: string[]
+  maxGenerating: number
+  runIsRetimed: boolean
+  hasCooldownScaling?: boolean
+}
+
+interface FiltersResponse {
   type: string
-  description: string
+  filters?: OnlineFilter[]
+  errorMessage?: string
 }
 
-interface Runner {
-  command: string
-  args: string[]
-  label: string
+interface VerifiedSeedResponse {
+  type: string
+  data?: {
+    seed: string
+    token: string
+  }
+  cooldown?: number
+  errorMessage?: string
 }
 
-const execFileAsync = promisify(execFile)
+interface PracticeSeedResponse {
+  type: string
+  seeds?: string[]
+  errorMessage?: string
+}
 
-const seedProfiles: SeedProfile[] = [
-  {
-    key: 'filteredseed',
-    label: 'Classic Coinflip',
-    dir: path.join(/* turbopackIgnore: true */ process.cwd(), 'fsg', 'filteredseed'),
-    type: 'Village / Shipwreck',
-    description: 'Classic FSG, randomly chooses village or shipwreck.',
-  },
-  {
-    key: 'twoironlootvillagelight',
-    label: 'Two Iron Village',
-    dir: path.join(
-      /* turbopackIgnore: true */ process.cwd(),
-      'fsg',
-      'twoironlootvillagelight',
-    ),
-    type: 'Village',
-    description: 'Village FSG tuned around early iron and light loot.',
-  },
-  {
-    key: 'fsg-power-village-looting-sword',
-    label: 'Looting Sword Village',
-    dir: path.join(
-      /* turbopackIgnore: true */ process.cwd(),
-      'fsg',
-      'fsg-power-village-looting-sword',
-    ),
-    type: 'Village',
-    description: 'Power village profile with looting sword checks.',
-  },
-  {
-    key: 'power-village-plusplus',
-    label: 'Power Village++',
-    dir: path.join(
-      /* turbopackIgnore: true */ process.cwd(),
-      'fsg',
-      'power-village-plusplus',
-    ),
-    type: 'Village',
-    description: 'Stronger power village filter variant.',
-  },
-  {
-    key: 'co-op-fsg',
-    label: 'Co-op FSG',
-    dir: path.join(/* turbopackIgnore: true */ process.cwd(), 'fsg', 'co-op-fsg'),
-    type: 'Village',
-    description: 'Co-op mode FSG profile.',
-  },
-  {
-    key: 'messing-around',
-    label: 'Experimental Village',
-    dir: path.join(/* turbopackIgnore: true */ process.cwd(), 'fsg', 'messing-around'),
-    type: 'Village',
-    description: 'Experimental village finder profile.',
-  },
-]
+let filterCache: { expiresAt: number; filters: OnlineFilter[] } | null = null
 
-function profileToResponse(profile: SeedProfile) {
+function profileToResponse(profile: OnlineFilter) {
   return {
-    key: profile.key,
-    label: profile.label,
-    type: profile.type,
-    description: profile.description,
+    key: profile.id,
+    label: profile.displayName,
+    supportedVersions: profile.supportedVersions,
+    maxGenerating: profile.maxGenerating,
+    runIsRetimed: profile.runIsRetimed,
+    description: profile.runIsRetimed
+      ? 'Official online filter. Runs use FSG retiming rules.'
+      : 'Official online filter for standard-timed runs.',
   }
 }
 
-function resolveProfile(value: string | null) {
-  return (
-    seedProfiles.find((profile) => profile.key === value) ?? seedProfiles[0]
-  )
+async function getJson<T>(path: string) {
+  const response = await fetch(`${FSG_BASE_URL}${path}`, {
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'MCSR-Ranked-Tracker/1.0',
+    },
+    signal: AbortSignal.timeout(20_000),
+  })
+
+  if (!response.ok) {
+    throw new Error(`FSG Online Database returned HTTP ${response.status}.`)
+  }
+
+  return (await response.json()) as T
 }
 
-function isExecutable(filePath: string) {
-  try {
-    accessSync(filePath, constants.X_OK)
-    return true
-  } catch {
-    return false
+async function getFilters() {
+  if (filterCache && filterCache.expiresAt > Date.now()) {
+    return filterCache.filters
   }
+
+  const response = await getJson<FiltersResponse>('/filters')
+
+  if (response.type !== 'SUCCESS' || !response.filters?.length) {
+    throw new Error(response.errorMessage || 'No online FSG filters are available.')
+  }
+
+  filterCache = {
+    expiresAt: Date.now() + FILTER_CACHE_MS,
+    filters: response.filters,
+  }
+
+  return filterCache.filters
 }
 
-async function findCommand(command: string) {
-  try {
-    const { stdout } = await execFileAsync('which', [command], {
-      timeout: 1500,
-    })
-    return stdout.trim().split('\n')[0] || null
-  } catch {
-    return null
-  }
-}
-
-async function getRunner(profileDir: string): Promise<Runner | null> {
-  const nativeCandidates = ['seed', 'seed-linux', 'seed.out'].map((fileName) =>
-    path.join(profileDir, fileName),
-  )
-  const nativeBinary = nativeCandidates.find(
-    (filePath) => existsSync(filePath) && isExecutable(filePath),
-  )
-
-  if (nativeBinary) {
-    return {
-      command: nativeBinary,
-      args: [],
-      label: path.basename(nativeBinary),
-    }
-  }
-
-  const windowsBinary = path.join(profileDir, 'seed.exe')
-  if (!existsSync(windowsBinary)) return null
-
-  if (process.platform === 'win32') {
-    return {
-      command: windowsBinary,
-      args: [],
-      label: 'seed.exe',
-    }
-  }
-
-  const wine = (await findCommand('wine64')) ?? (await findCommand('wine'))
-  if (!wine) return null
-
-  return {
-    command: wine,
-    args: [windowsBinary],
-    label: `${path.basename(wine)} seed.exe`,
-  }
-}
-
-function parseSeedOutput(
-  output: string,
-  profile: SeedProfile,
+function makeSeed(
+  seed: string,
+  profile: OnlineFilter,
+  mode: 'verified' | 'practice',
   durationMs: number,
+  verificationToken: string | null,
 ) {
-  const seed = output.match(/Seed:\s*(-?\d+)/)?.[1]
-  if (!seed) {
-    throw new Error('FSG runner finished without printing a seed.')
-  }
-
-  const filtered = output.match(
-    /Filtered\s+(\d+)\s+seeds\s+did\s+(\d+)\s+biome checks/i,
-  )
-  const version = output.match(/FSG\s+[^\r\n]+/i)?.[0]?.trim() ?? profile.label
-  const verificationToken = output
-    .match(/Verification Token:\s*([\s\S]*?)(?:\r?\n|$)/)?.[1]
-    ?.trim()
-  const generatedType = output.includes('Shipwreck Seed')
-    ? 'Shipwreck'
-    : output.includes('Village Seed')
-      ? 'Village'
-      : profile.type
-
   return {
-    id: `${profile.key}-${seed}-${Date.now()}`,
+    id: `${profile.id}-${seed}-${Date.now()}`,
     seed,
-    profile: profile.label,
-    type: generatedType,
-    version,
-    filteredSeeds: filtered?.[1] ? Number(filtered[1]) : null,
-    biomeChecks: filtered?.[2] ? Number(filtered[2]) : null,
-    verificationToken: verificationToken ?? null,
+    profile: profile.displayName,
+    filterId: profile.id,
+    mode,
+    version: profile.supportedVersions.join(', ') || 'Minecraft Java',
+    verificationToken,
     durationMs,
   }
 }
 
-async function runSeedFinder(profile: SeedProfile, runner: Runner) {
-  const startedAt = Date.now()
-  const { stdout, stderr } = await execFileAsync(runner.command, runner.args, {
-    cwd: profile.dir,
-    timeout: 90_000,
-    maxBuffer: 1024 * 1024,
-  })
-  const output = `${stdout}\n${stderr}`.trim()
-  return parseSeedOutput(output, profile, Date.now() - startedAt)
-}
-
 export async function GET(request: Request) {
-  const ip =
-    request.headers.get('x-forwarded-for') ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-
-  const rateLimitResult = await checkRateLimit(`seed-finder:${ip}`)
-  const headers = {
-    ...getRateLimitHeaders(rateLimitResult),
-  }
-
-  if (!rateLimitResult.success) {
-    return Response.json(
-      { error: 'Too many requests. Rate limit exceeded.' },
-      {
-        status: 429,
-        headers,
-      },
-    )
-  }
-
   const { searchParams } = new URL(request.url)
-  const profile = resolveProfile(searchParams.get('profile'))
-  const count = Math.min(
-    Math.max(Number(searchParams.get('count') ?? 3) || 3, 1),
-    4,
-  )
-  const runner = await getRunner(profile.dir)
-
-  if (!runner) {
-    return Response.json(
-      {
-        error: 'FSG runner is not available on this server.',
-        details:
-          'The bundled seed.exe files are Windows executables. Install Wine or add a native Linux build named seed inside the selected fsg folder.',
-        profile: profileToResponse(profile),
-        profiles: seedProfiles.map(profileToResponse),
-        runtime: {
-          available: false,
-          platform: process.platform,
-        },
-      },
-      { status: 503, headers },
-    )
-  }
 
   try {
-    const seeds = []
-    const seenSeeds = new Set<string>()
-    let attempts = 0
+    const filters = await getFilters()
+    const profiles = filters.map(profileToResponse)
 
-    while (seeds.length < count && attempts < count + 2) {
-      attempts += 1
-      const seed = await runSeedFinder(profile, runner)
-      if (!seenSeeds.has(seed.seed)) {
-        seenSeeds.add(seed.seed)
-        seeds.push(seed)
+    if (searchParams.get('metadata') === '1') {
+      return Response.json({
+        profiles,
+        runtime: {
+          available: true,
+          runner: 'FSG Online Database',
+          platform: 'online',
+        },
+      })
+    }
+
+    const ip =
+      request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown'
+    const rateLimitResult = await checkRateLimit(`seed-finder:${ip}`)
+    const headers = getRateLimitHeaders(rateLimitResult)
+
+    if (!rateLimitResult.success) {
+      return Response.json(
+        { error: 'Too many seed requests. Try again shortly.' },
+        { status: 429, headers },
+      )
+    }
+
+    const requestedProfile = searchParams.get('profile')
+    const profile =
+      filters.find((candidate) => candidate.id === requestedProfile) ?? filters[0]
+    const mode = searchParams.get('mode') === 'practice' ? 'practice' : 'verified'
+    const startedAt = Date.now()
+
+    if (mode === 'practice') {
+      const count = Math.min(
+        Math.max(Number(searchParams.get('count') ?? 3) || 3, 1),
+        4,
+      )
+      const response = await getJson<PracticeSeedResponse>(
+        `/getRandomUsedSeeds/${encodeURIComponent(profile.id)}/${count}`,
+      )
+
+      if (response.type !== 'SUCCESS' || !response.seeds?.length) {
+        return Response.json(
+          {
+            error: response.errorMessage || 'No FSG practice seeds are available.',
+            profiles,
+          },
+          { status: 502, headers },
+        )
       }
+
+      const durationMs = Date.now() - startedAt
+      return Response.json(
+        {
+          profile: profileToResponse(profile),
+          profiles,
+          runtime: {
+            available: true,
+            runner: 'FSG Online Database',
+            platform: 'online',
+          },
+          seeds: response.seeds.map((seed) =>
+            makeSeed(seed, profile, mode, durationMs, null),
+          ),
+        },
+        { headers },
+      )
+    }
+
+    const response = await getJson<VerifiedSeedResponse>(
+      `/getSeed/${encodeURIComponent(profile.id)}`,
+    )
+
+    if (response.type === 'COOLDOWN') {
+      const cooldownMs = Math.max(response.cooldown ?? 0, 0)
+      const retryAfterSeconds = Math.max(Math.ceil(cooldownMs / 1000), 1)
+
+      return Response.json(
+        {
+          error: 'The official FSG cooldown is active.',
+          details: `Try again in about ${retryAfterSeconds} seconds, or use Practice mode while you wait.`,
+          retryAfterMs: cooldownMs,
+          profiles,
+        },
+        {
+          status: 429,
+          headers: {
+            ...headers,
+            'Retry-After': String(retryAfterSeconds),
+          },
+        },
+      )
+    }
+
+    if (response.type !== 'SUCCESS' || !response.data?.seed) {
+      return Response.json(
+        {
+          error: response.errorMessage || 'The FSG database did not return a seed.',
+          profiles,
+        },
+        { status: 502, headers },
+      )
     }
 
     return Response.json(
       {
         profile: profileToResponse(profile),
-        profiles: seedProfiles.map(profileToResponse),
+        profiles,
         runtime: {
           available: true,
-          runner: runner.label,
-          platform: process.platform,
+          runner: 'FSG Online Database',
+          platform: 'online',
         },
-        seeds,
+        seeds: [
+          makeSeed(
+            response.data.seed,
+            profile,
+            mode,
+            Date.now() - startedAt,
+            response.data.token || null,
+          ),
+        ],
       },
       { headers },
     )
   } catch (error) {
     return Response.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to run FSG seed finder.',
-        profile: profileToResponse(profile),
-        profiles: seedProfiles.map(profileToResponse),
-        runtime: {
-          available: true,
-          runner: runner.label,
-          platform: process.platform,
-        },
+        error: 'Could not reach the FSG Online Database.',
+        details:
+          error instanceof Error ? error.message : 'The upstream request failed.',
       },
-      { status: 500, headers },
+      { status: 502 },
     )
   }
 }
