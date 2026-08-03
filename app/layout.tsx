@@ -25,8 +25,21 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   icons: {
-    icon: '/Gold_Icon.png',
-    apple: '/Gold_Icon.png',
+    icon: [
+      {
+        url: '/favicon.png',
+        type: 'image/png',
+        sizes: '256x256',
+      },
+    ],
+    shortcut: '/favicon.png',
+    apple: [
+      {
+        url: '/favicon.png',
+        type: 'image/png',
+        sizes: '256x256',
+      },
+    ],
   },
   openGraph: {
     type: 'website',

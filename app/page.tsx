@@ -8,8 +8,13 @@ import { SITE_NAME, SITE_URL } from '@/lib/site'
 const websiteJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
+  '@id': `${SITE_URL}/#website`,
   name: SITE_NAME,
-  alternateName: 'MCSR Ranked',
+  alternateName: [
+    'MCSR Tracker',
+    'MCSR Ranked',
+    'mcsrtracker.vercel.app',
+  ],
   url: SITE_URL,
 }
 
