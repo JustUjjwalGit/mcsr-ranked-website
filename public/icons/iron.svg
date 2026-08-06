@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" style="image-rendering:pixelated">
+  <!-- Iron ingot body -->
+  <rect x="1" y="3" width="14" height="10" fill="#b0b0b0"/>
+  <!-- Top highlight -->
+  <rect x="1" y="3" width="14" height="2" fill="#d8d8d8"/>
+  <!-- Left highlight -->
+  <rect x="1" y="3" width="2" height="10" fill="#d8d8d8"/>
+  <!-- Right shadow -->
+  <rect x="13" y="5" width="2" height="8" fill="#787878"/>
+  <!-- Bottom shadow -->
+  <rect x="1" y="11" width="14" height="2" fill="#787878"/>
+  <!-- Center detail -->
+  <rect x="4" y="6" width="7" height="4" fill="#c0c0c0"/>
+  <!-- Shine pixel -->
+  <rect x="5" y="6" width="2" height="1" fill="#eeeeee"/>
+</svg>

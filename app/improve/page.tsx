@@ -1,6 +1,7 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, Suspense, useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   BarChart3,
   ChevronDown,
@@ -187,21 +188,18 @@ function MiniStat({
   )
 }
 
-export default function ImprovePage() {
-  const [username, setUsername] = useState('')
+function ImprovePageContent() {
+  const searchParams = useSearchParams()
+  const initialPlayerParam = searchParams.get('player') || searchParams.get('username') || ''
+
+  const [username, setUsername] = useState(initialPlayerParam)
   const [analysis, setAnalysis] = useState<ImproveAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showMatches, setShowMatches] = useState(false)
 
-  async function analyzePlayer(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const query = username.trim()
-    if (!query) {
-      setError('Enter a username first.')
-      return
-    }
-
+  const fetchAnalysis = useCallback(async (query: string) => {
+    if (!query) return
     try {
       setLoading(true)
       setError('')
@@ -224,6 +222,23 @@ export default function ImprovePage() {
     } finally {
       setLoading(false)
     }
+  }, [])
+
+  useEffect(() => {
+    if (initialPlayerParam) {
+      setUsername(initialPlayerParam)
+      fetchAnalysis(initialPlayerParam)
+    }
+  }, [initialPlayerParam, fetchAnalysis])
+
+  async function analyzePlayer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const query = username.trim()
+    if (!query) {
+      setError('Enter a username first.')
+      return
+    }
+    await fetchAnalysis(query)
   }
 
   const weakest = analysis?.weakness
@@ -365,6 +380,32 @@ export default function ImprovePage() {
                     for split comparisons. A smaller sample is less reliable.
                   </InfoTip>
                 </p>
+
+                {/* Ludwig Comparison Callout */}
+                <div className="mt-4 rounded-md border-2 border-primary/40 bg-primary/10 p-3.5 sm:p-4">
+                  <div className="flex items-center gap-2 font-heading text-xs font-bold uppercase tracking-wider text-primary">
+                    <span>👑 LUDWIG CHECK ("ludwigahgren")</span>
+                  </div>
+                  {analysis.player.elo >= 1100 ? (
+                    <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="font-heading text-sm font-bold text-foreground sm:text-base">
+                        Bro chill, at least you&apos;re better than Ludwig! 🔥
+                      </p>
+                      <p className="font-sans text-xs text-muted-foreground">
+                        Your Elo ({analysis.player.elo.toLocaleString()}) &gt; Ludwig (~1,100 Elo, Gold). You&apos;ve officially surpassed the mogul!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="font-heading text-sm font-bold text-amber-400 sm:text-base">
+                        Bruh... even Ludwig is ranked higher than you right now 😭💀
+                      </p>
+                      <p className="font-sans text-xs text-muted-foreground">
+                        Your Elo ({analysis.player.elo.toLocaleString()}) &lt; Ludwig (~1,100 Elo, Gold). Time to lock in and review your splits below!
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="p-4 sm:p-5">
@@ -718,5 +759,13 @@ export default function ImprovePage() {
         </div>
       </main>
     </>
+  )
+}
+
+export default function ImprovePage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <ImprovePageContent />
+    </Suspense>
   )
 }

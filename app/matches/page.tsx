@@ -684,7 +684,7 @@ export default function MatchesPage() {
     <>
       <Header />
       <main className="mx-auto max-w-[1800px] px-2 py-4 sm:px-4 sm:py-6">
-        <section className="mb-4 flex flex-col gap-4 rounded-xl border border-white/10 bg-card/80 p-4 backdrop-blur-xl sm:p-5 lg:flex-row lg:items-end lg:justify-between">
+        <section className="mc-card mb-4 flex flex-col gap-4 rounded-md p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-red-400">
               <Radio className="h-4 w-4" /> Race control
@@ -728,7 +728,7 @@ export default function MatchesPage() {
           <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <LiveArena race={selectedRace} />
 
-            <aside className="min-w-0 rounded-xl border border-white/10 bg-card/88 p-3 backdrop-blur-xl sm:p-4">
+            <aside className="mc-card min-w-0 rounded-md p-3 sm:p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="flex items-center gap-2 font-semibold text-foreground">

@@ -203,7 +203,7 @@ function TutorialModal({
   onUseExample: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-2 py-2 backdrop-blur-sm sm:px-4">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/85 px-2 py-2 sm:px-4">
       <Card className="max-h-[calc(100dvh-1rem)] max-w-xl overflow-y-auto border border-primary/40 bg-card p-4 shadow-2xl shadow-black/60 sm:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">

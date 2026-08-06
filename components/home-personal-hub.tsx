@@ -85,7 +85,7 @@ export function HomePersonalHub() {
 
   return (
     <section className="grid gap-4 lg:grid-cols-3">
-      <Card className="border border-primary/40 bg-card/85 p-4 backdrop-blur-sm sm:p-5">
+      <Card className="mc-card p-4 sm:p-5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
@@ -128,7 +128,7 @@ export function HomePersonalHub() {
         </div>
       </Card>
 
-      <Card className="border border-primary/40 bg-card/85 p-4 backdrop-blur-sm sm:p-5">
+      <Card className="mc-card p-4 sm:p-5">
         <div className="flex items-center gap-2">
           <Star className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-semibold uppercase text-muted-foreground">
@@ -182,7 +182,7 @@ export function HomePersonalHub() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden border border-primary/40 bg-card/85 p-0 backdrop-blur-sm">
+      <Card className="mc-card overflow-hidden p-0">
         {vodLoading ? (
           <div className="h-48 animate-pulse bg-muted sm:h-56" />
         ) : featuredVod && twitchParent ? (

@@ -88,6 +88,32 @@ function coordinate(value: number | undefined, decimals = 0) {
   return value.toFixed(decimals)
 }
 
+function certaintyTone(value: number | undefined) {
+  const percentValue = Math.round((value ?? 0) * 100)
+  if (percentValue >= 95) return 'text-emerald-300'
+  if (percentValue >= 60) return 'text-amber-300'
+  return 'text-rose-300'
+}
+
+function certaintyFillTone(value: number | undefined) {
+  const percentValue = Math.round((value ?? 0) * 100)
+  if (percentValue >= 95) return 'bg-emerald-300'
+  if (percentValue >= 60) return 'bg-amber-300'
+  return 'bg-rose-300'
+}
+
+function certaintyPanelTone(value: number | undefined) {
+  const percentValue = Math.round((value ?? 0) * 100)
+  if (percentValue >= 95) return 'border-emerald-400/20 bg-emerald-400/8 text-emerald-300'
+  if (percentValue >= 60) return 'border-amber-400/20 bg-amber-400/8 text-amber-300'
+  return 'border-rose-400/20 bg-rose-400/8 text-rose-300'
+}
+
+function coordinateTone(value: number | undefined) {
+  if (value == null || Number.isNaN(value)) return 'text-muted-foreground'
+  return value < 0 ? 'text-rose-300' : 'text-emerald-300'
+}
+
 function normalizeAngle(value: number) {
   let normalized = value % 360
   if (normalized > 180) normalized -= 360
@@ -227,18 +253,18 @@ function StrongholdView({ data }: { data: StrongholdData }) {
 
           <div className="mt-7">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Nether coordinates</p>
-            <p className="mt-1 break-words font-mono text-[clamp(2.5rem,10vw,5.4rem)] font-black leading-none tracking-[-0.08em] text-foreground tabular-nums">
-              {target.netherX}, {target.netherZ}
+            <p className="mt-1 break-words font-mono text-[clamp(2.5rem,10vw,5.4rem)] font-black leading-none tracking-[-0.08em] tabular-nums">
+              <span className={coordinateTone(target.netherX)}>{target.netherX}</span>, <span className={coordinateTone(target.netherZ)}>{target.netherZ}</span>
             </p>
             <p className="mt-4 flex items-center gap-2 font-mono text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4 text-primary" /> OW {target.overworldX}, {target.overworldZ}
+              <MapPin className="h-4 w-4 text-primary" /> OW <span className={coordinateTone(target.overworldX)}>{target.overworldX}</span>, <span className={coordinateTone(target.overworldZ)}>{target.overworldZ}</span>
             </p>
           </div>
 
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/8 p-3.5">
+            <div className={cn('rounded-xl p-3.5', certaintyPanelTone(top.certainty))}>
               <p className="text-[10px] uppercase tracking-[0.15em] text-emerald-200/70">Certainty</p>
-              <p className="mt-1 font-mono text-2xl font-bold text-emerald-300 tabular-nums">{percent(top.certainty)}</p>
+              <p className={cn('mt-1 font-mono text-2xl font-bold tabular-nums', certaintyTone(top.certainty))}>{percent(top.certainty)}</p>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/5 p-3.5">
               <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">OW distance</p>
@@ -273,11 +299,11 @@ function StrongholdView({ data }: { data: StrongholdData }) {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="font-mono text-sm font-semibold text-foreground tabular-nums">{coords.netherX}, {coords.netherZ}</span>
-                      <span className={cn('font-mono text-sm font-bold tabular-nums', index === 0 ? 'text-emerald-300' : 'text-muted-foreground')}>{percent(prediction.certainty)}</span>
+                      <span className={cn('font-mono text-sm font-semibold tabular-nums', coordinateTone(coords.netherX))}>{coords.netherX}</span>, <span className={cn('font-mono text-sm font-semibold tabular-nums', coordinateTone(coords.netherZ))}>{coords.netherZ}</span>
+                      <span className={cn('font-mono text-sm font-bold tabular-nums', certaintyTone(prediction.certainty))}>{percent(prediction.certainty)}</span>
                     </div>
                     <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/7">
-                      <div className={cn('h-full rounded-full', index === 0 ? 'bg-emerald-300' : 'bg-primary/60')} style={{ width: `${Math.max(prediction.certainty * 100, 0.5)}%` }} />
+                      <div className={cn('h-full rounded-full', index === 0 ? certaintyFillTone(prediction.certainty) : 'bg-primary/60')} style={{ width: `${Math.max(prediction.certainty * 100, 0.5)}%` }} />
                     </div>
                   </div>
                 </div>
@@ -454,7 +480,7 @@ function StandStrongholdView({ data }: { data: StrongholdData }) {
               <button type="button" onClick={() => setDimension(isOverworld ? 'nether' : 'overworld')} className={cn('rounded-md border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.12em] transition', isOverworld ? 'border-red-200/15 bg-red-300/5 text-red-100/55 hover:bg-red-300/10 hover:text-red-100' : 'border-sky-200/15 bg-sky-300/5 text-sky-100/55 hover:bg-sky-300/10 hover:text-sky-100')}>{isOverworld ? 'Show Nether' : 'Show Overworld'}</button>
             </div>
             <p className={cn('mt-1.5 whitespace-nowrap font-mono text-[clamp(2rem,11vw,4.6rem)] font-black leading-none tracking-[-0.07em] tabular-nums', isOverworld ? 'text-sky-50 drop-shadow-[0_0_30px_rgba(186,230,253,0.16)]' : 'text-red-200 drop-shadow-[0_0_30px_rgba(248,113,113,0.2)]')}>
-              ({primaryX}, {primaryZ})
+              (<span className={coordinateTone(primaryX)}>{primaryX}</span>, <span className={coordinateTone(primaryZ)}>{primaryZ}</span>)
             </p>
             <p className={cn('mt-2 font-mono text-xs', isOverworld ? 'text-sky-100/50' : 'text-red-100/50')}>
               {Math.round(primaryDistance).toLocaleString()} {isOverworld ? 'Overworld' : 'Nether'} blocks away
@@ -607,21 +633,23 @@ function ClassicStandStrongholdView({ data }: { data: StrongholdData }) {
   const predictionRows = Array.from({ length: 5 }, (_, index) => data.predictions[index])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#292b44] font-sans text-[#f4f3e9]">
-      <div className="grid h-7 shrink-0 grid-cols-[1.35fr_.48fr_.65fr_.9fr_.7fr] items-center border-b border-black/45 bg-[#303536] px-2 text-center text-[clamp(10px,3.2vw,17px)] leading-none">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#292b44] font-sans text-[#f4f3e9] text-base">
+      <div className="grid h-[clamp(30px,7.5vh,46px)] shrink-0 grid-cols-[1.35fr_.48fr_.65fr_.9fr_.7fr] items-center border-b border-black/45 bg-[#303536] px-3 text-center text-[clamp(12px,3.7vw,19px)] leading-none">
         <span>Location</span><span>%</span><span>Dist.</span><span>Nether</span><span>Angle</span>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">
         {predictionRows.map((prediction, index) => {
-          if (!prediction) return <div key={index} className="h-[clamp(23px,6.5vh,40px)] border-b border-black/35 bg-[#292b44]" />
+          if (!prediction) return <div key={index} className="h-[clamp(30px,7.5vh,46px)] border-b border-black/35 bg-[#292b44]" />
           const coordinates = getPredictionCoordinates(prediction)
           const predictionDirection = travelDirection(data.playerPosition, coordinates.overworldX, coordinates.overworldZ)
           return (
-            <div key={`${prediction.chunkX}-${prediction.chunkZ}`} className={cn('grid h-[clamp(23px,6.5vh,40px)] grid-cols-[1.35fr_.48fr_.65fr_.9fr_.7fr] items-center border-b border-black/35 px-1.5 text-center font-mono text-[clamp(8px,2.3vw,13px)] tabular-nums', index === 0 ? 'bg-[#30324d] text-white' : 'bg-[#292b44] text-white/70')}>
-              <span className="whitespace-nowrap">({coordinates.overworldX}, {coordinates.overworldZ})</span>
-              <span>{percent(prediction.certainty, 0)}</span>
+            <div key={`${prediction.chunkX}-${prediction.chunkZ}`} className={cn('grid h-[clamp(30px,7.5vh,46px)] grid-cols-[1.35fr_.48fr_.65fr_.9fr_.7fr] items-center border-b border-black/35 px-3 text-center font-mono text-[clamp(11px,3vw,16px)] tabular-nums', index === 0 ? 'bg-[#30324d] text-white' : 'bg-[#292b44] text-white/70')}>
+              <span className="whitespace-nowrap">
+                <span className={coordinateTone(coordinates.overworldX)}>({coordinates.overworldX}</span>, <span className={coordinateTone(coordinates.overworldZ)}>{coordinates.overworldZ})</span>
+              </span>
+              <span className={certaintyTone(prediction.certainty)}>{percent(prediction.certainty, 0)}</span>
               <span>{Math.round(prediction.overworldDistance)}</span>
-              <span className="whitespace-nowrap">({coordinates.netherX}, {coordinates.netherZ})</span>
+              <span className={cn('whitespace-nowrap', coordinateTone(coordinates.netherX))}>(<span>{coordinates.netherX}</span>, <span className={coordinateTone(coordinates.netherZ)}>{coordinates.netherZ}</span>)</span>
               <span>{predictionDirection.angle == null ? '—' : `${predictionDirection.angle.toFixed(1)}°`}</span>
             </div>
           )
@@ -629,14 +657,14 @@ function ClassicStandStrongholdView({ data }: { data: StrongholdData }) {
       </div>
 
       <div className="shrink-0 border-t border-black/60">
-        <div className="grid h-10 grid-cols-[1.35fr_.7fr_.7fr_.7fr] items-center bg-[#303536] px-2 text-[clamp(10px,3vw,16px)]">
+        <div className="grid h-10 grid-cols-[1.35fr_.7fr_.7fr_.7fr] items-center bg-[#303536] px-2 text-[clamp(11px,3.2vw,17px)]">
           <span className="font-semibold">Ender eye throws</span>
           <button type="button" onClick={() => setThrowOffset(Math.min(safeThrowOffset + 1, maximumThrowOffset))} disabled={!selectedThrow || safeThrowOffset >= maximumThrowOffset} className="h-full text-white/70 transition hover:text-white disabled:opacity-25">Undo</button>
           <button type="button" onClick={() => setThrowOffset(Math.max(safeThrowOffset - 1, 0))} disabled={!selectedThrow || safeThrowOffset === 0} className="h-full text-white/70 transition hover:text-white disabled:opacity-25">Redo</button>
-          <span className="text-center text-[10px] text-emerald-300/70">LIVE</span>
+          <span className="text-center text-[clamp(11px,3.2vw,17px)] text-emerald-300/70">LIVE</span>
         </div>
-        <div className="grid h-5 grid-cols-3 items-center border-b border-black/45 bg-[#303536] px-2 text-center text-[clamp(9px,2.7vw,14px)] leading-none"><span>x</span><span>z</span><span>Angle</span></div>
-        <div className="grid h-[clamp(32px,9vh,52px)] grid-cols-3 items-center border-b border-black/35 bg-[#292b44] px-2 text-center font-mono text-[clamp(9px,2.6vw,14px)] tabular-nums">
+        <div className="grid h-6 grid-cols-3 items-center border-b border-black/45 bg-[#303536] px-2 text-center text-[clamp(10px,3vw,15px)] leading-none"><span>x</span><span>z</span><span>Angle</span></div>
+        <div className="grid h-[clamp(34px,9.5vh,54px)] grid-cols-3 items-center border-b border-black/35 bg-[#292b44] px-2 text-center font-mono text-[clamp(10px,2.8vw,15px)] tabular-nums">
           {selectedThrow ? (
             <><span>{coordinate(selectedThrow.xInOverworld, 1)}</span><span>{coordinate(selectedThrow.zInOverworld, 1)}</span><span>{selectedThrow.angle.toFixed(3)}°</span></>
           ) : (
@@ -667,7 +695,7 @@ function NinjabrainStandConsole({
 
   return (
     <section className={cn('flex h-[100svh] min-h-0 flex-col overflow-hidden text-white', isClassic ? 'bg-[#292b44]' : 'bg-[#05070a]')}>
-      <div className={cn('z-10 flex shrink-0 items-center justify-between gap-2', isClassic ? 'h-7 border-b border-black/50 bg-[#20212c] px-1.5' : 'border-b border-white/10 bg-[#080b0f]/95 px-2 py-1.5 backdrop-blur sm:px-4')}>
+      <div className={cn('z-10 flex shrink-0 items-center justify-between gap-2', isClassic ? 'h-7 border-b border-black/50 bg-[#20212c] px-1.5' : 'border-b border-white/10 bg-[#080b0f] px-2 py-1.5 sm:px-4')}>
         <div className="flex min-w-0 items-center gap-2">
           {isClassic ? (
             <><span className="text-sm font-semibold text-white">Ninjabrain Bot</span><span className="text-[10px] text-white/35">v{version || 'API'}</span></>
@@ -1031,7 +1059,7 @@ export function NinjabrainDisplay() {
         <div className="fixed inset-0 z-[100] overflow-hidden bg-[#05070a]">{standConsoleView}</div>
       ) : (
         <main className="mx-auto max-w-7xl px-3 py-5 sm:px-4 sm:py-8">
-          <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-card/78 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.32)] backdrop-blur-2xl sm:p-8">
+          <section className="mc-card relative overflow-hidden rounded-md p-5 shadow-xl sm:p-8">
             <div className="pointer-events-none absolute -right-24 -top-32 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
             <div className="relative grid items-end gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
               <div>
@@ -1062,7 +1090,7 @@ export function NinjabrainDisplay() {
 
           {!active && (
             <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_23rem]">
-              <div className="rounded-2xl border border-white/10 bg-card/80 p-5 backdrop-blur-xl sm:p-6">
+              <div className="mc-card rounded-md p-5 sm:p-6">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary"><PlugZap className="h-5 w-5" /></span>
                   <div>
@@ -1114,7 +1142,7 @@ export function NinjabrainDisplay() {
                 </div>
               </div>
 
-              <aside className="rounded-2xl border border-amber-400/20 bg-amber-400/7 p-5 backdrop-blur-xl">
+              <aside className="mc-card rounded-md p-5">
                 <div className="flex items-center gap-2 text-amber-200"><AlertTriangle className="h-4 w-4" /><h2 className="font-semibold">Before connecting</h2></div>
                 <ul className="mt-4 space-y-3 text-xs leading-5 text-muted-foreground">
                   <li>Use Ninjabrain Bot 1.5.2 or newer.</li>
@@ -1128,7 +1156,7 @@ export function NinjabrainDisplay() {
 
           {active && (
             <section className="mt-5">
-              <div className="mb-3 flex flex-col gap-3 rounded-xl border border-white/10 bg-card/72 p-3 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+              <div className="mc-card mb-3 flex flex-col gap-3 rounded-md p-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2"><StatusPill status={status} /><span className="truncate font-mono text-[10px] text-muted-foreground">{connectedAddress}</span></div>
                   <p className="mt-1.5 text-xs text-muted-foreground">{status === 'live' ? `Live via ${transport === 'polling' ? 'fast polling' : 'event stream'} · NBB ${version || 'connected'}` : 'Sample data only — connect your PC when ready.'}</p>
@@ -1152,7 +1180,7 @@ export function NinjabrainDisplay() {
             </section>
           )}
 
-          <section className="mt-5 rounded-2xl border border-white/10 bg-card/72 p-5 backdrop-blur-xl sm:p-6">
+          <section className="mc-card mt-5 rounded-md p-5 sm:p-6">
             <div className="mb-5 flex items-end justify-between gap-3">
               <div>
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">One-time setup</p>

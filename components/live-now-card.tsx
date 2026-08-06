@@ -134,7 +134,7 @@ export function LiveNowCard() {
   )
 
   return (
-    <Card className="border border-primary/40 bg-card/85 p-4 backdrop-blur-sm sm:p-5">
+    <Card className="mc-card p-4 sm:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="relative flex h-11 w-11 items-center justify-center rounded border border-primary bg-primary/15 text-primary">

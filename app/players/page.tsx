@@ -136,12 +136,9 @@ export default function PlayersPage() {
                     {/* View Profile Button */}
                     <a
                       href={`/player/${player.username}`}
-                      className={cn(
-                        buttonVariants({ variant: 'outline' }),
-                        'w-full',
-                      )}
+                      className="button--anthe w-full"
                     >
-                      View Profile
+                      <span>View Profile</span>
                     </a>
 
                     {/* Twitch Button (if available) */}

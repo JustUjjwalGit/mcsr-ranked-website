@@ -1,8 +1,10 @@
+import Link from 'next/link'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { Dashboard } from '@/components/dashboard'
 import { HomePersonalHub } from '@/components/home-personal-hub'
 import { LiveNowCard } from '@/components/live-now-card'
+import { buttonVariants } from '@/components/ui/button'
 import { SITE_NAME, SITE_URL } from '@/lib/site'
 
 const websiteJsonLd = {
@@ -29,8 +31,38 @@ export default function Page() {
       />
       <Header />
       <main className="mx-auto max-w-7xl px-3 sm:px-4">
-        <h1 className="sr-only">MCSR Ranked Tracker</h1>
-        <div className="pt-6 sm:pt-8">
+        <section className="pixel-banner mt-6 overflow-hidden rounded-md px-4 py-6 text-white shadow-xl sm:mt-8 sm:px-8 sm:py-8 lg:flex lg:items-center lg:justify-between lg:gap-8">
+          <div className="relative z-10 max-w-3xl">
+            <p className="font-heading text-xs font-bold uppercase tracking-[0.16em] text-[#8ce858] sm:text-sm">
+              Ranked data, made useful
+            </p>
+            <h1 className="mt-2 font-heading text-3xl font-extrabold tracking-wider text-white sm:text-4xl lg:text-5xl">
+              MCSR Ranked Tracker
+            </h1>
+            <p className="mt-3 max-w-2xl font-sans text-sm font-normal leading-relaxed text-[#d1e8d4] sm:text-base">
+              Follow the leaderboard, watch live races, study player stats, and
+              find your next improvement in one focused tracker.
+            </p>
+          </div>
+          <div className="relative z-10 mt-6 flex flex-col gap-4 sm:flex-row sm:items-center lg:mt-0 lg:shrink-0">
+            <Link
+              href="/players"
+              className="button--pandora"
+            >
+              <span>Browse Players</span>
+            </Link>
+            <Link
+              href="/matches"
+              className={buttonVariants({
+                variant: 'outline',
+                size: 'lg',
+              })}
+            >
+              Watch Matches
+            </Link>
+          </div>
+        </section>
+        <div className="pt-4 sm:pt-6">
           <HomePersonalHub />
         </div>
         <div className="pt-4">

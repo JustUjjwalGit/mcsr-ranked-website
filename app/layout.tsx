@@ -1,8 +1,9 @@
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import { ThemeProvider } from '@/components/theme-provider'
-import { ParticleNetwork } from '@/components/particle-network'
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site'
 import './globals.css'
 
@@ -10,6 +11,23 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+})
+
+const pixelDisplay = localFont({
+  src: [
+    {
+      path: '../public/fonts/Minecraft.otf',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/Minecraft-Bold.otf',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-pixel-display',
+  display: 'swap',
 })
 
 export const metadata: Metadata = {
@@ -22,7 +40,7 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   category: 'gaming',
   alternates: {
-    canonical: '/',
+    canonical: 'https://mcsrtracker.vercel.app/',
   },
   icons: {
     icon: [
@@ -85,14 +103,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark`}>
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} ${pixelDisplay.variable} dark`}
+    >
       <body className="font-sans antialiased">
         <ThemeProvider>
-          <div className="site-background" aria-hidden="true">
-            <ParticleNetwork />
-          </div>
           <div className="site-content">{children}</div>
         </ThemeProvider>
+        <SpeedInsights />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

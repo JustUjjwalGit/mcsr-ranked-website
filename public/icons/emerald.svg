@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" style="image-rendering:pixelated">
+  <!-- Emerald gem body -->
+  <polygon points="8,1 13,5 13,11 8,15 3,11 3,5" fill="#00b848"/>
+  <!-- Top facet -->
+  <polygon points="8,1 13,5 8,4 3,5" fill="#00e060"/>
+  <!-- Left facet -->
+  <polygon points="3,5 8,4 8,9 3,11" fill="#009a3c"/>
+  <!-- Right facet -->
+  <polygon points="8,4 13,5 13,11 8,9" fill="#00c050"/>
+  <!-- Bottom left -->
+  <polygon points="3,11 8,9 8,15" fill="#007030"/>
+  <!-- Bottom right -->
+  <polygon points="8,9 13,11 8,15" fill="#005820"/>
+  <!-- Center shine -->
+  <rect x="7" y="5" width="2" height="2" fill="#80ffb0"/>
+</svg>

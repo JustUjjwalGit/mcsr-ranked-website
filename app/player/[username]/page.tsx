@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowRightLeft, Star } from 'lucide-react'
+import { ArrowRightLeft, Sparkles, Star } from 'lucide-react'
 import { Header } from '@/components/header'
 import { Card } from '@/components/ui/card'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -240,22 +240,36 @@ export default function PlayerPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-row sm:justify-end">
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                       <Link
                         href={`/versus?player1=${encodeURIComponent(player.username)}`}
-                        className={buttonVariants({
-                          variant: 'outline',
-                          size: 'sm',
-                          className: 'w-full sm:w-auto',
-                        })}
+                        className="button--telesto"
                       >
-                        <ArrowRightLeft className="h-4 w-4" />
-                        Compare
+                        <span>
+                          <span>
+                            <span className="flex items-center gap-1.5">
+                              <ArrowRightLeft className="h-4 w-4" />
+                              Compare
+                            </span>
+                          </span>
+                        </span>
+                      </Link>
+                      <Link
+                        href={`/improve?player=${encodeURIComponent(player.username)}`}
+                        className="button--telesto"
+                      >
+                        <span>
+                          <span>
+                            <span className="flex items-center gap-1.5">
+                              <Sparkles className="h-4 w-4" />
+                              Improve
+                            </span>
+                          </span>
+                        </span>
                       </Link>
                       <Button
                         type="button"
                         variant={favorite ? 'default' : 'outline'}
-                        size="sm"
                         onClick={handleFavoriteToggle}
                         className="w-full sm:w-auto"
                       >
