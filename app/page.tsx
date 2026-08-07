@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Users } from 'lucide-react'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { Dashboard } from '@/components/dashboard'
@@ -47,18 +48,24 @@ export default function Page() {
           <div className="relative z-10 mt-6 flex flex-col gap-4 sm:flex-row sm:items-center lg:mt-0 lg:shrink-0">
             <Link
               href="/players"
-              className="button--pandora"
+              className={buttonVariants({
+                variant: 'default',
+                size: 'lg',
+                className:
+                  'font-heading relative group overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_0_20px_rgba(var(--primary-rgb,140,232,88),0.4)] active:scale-[0.98]',
+              })}
             >
-              <span>Browse Players</span>
+              <Users className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
+              <span className="font-heading uppercase">Browse Players</span>
             </Link>
             <Link
-              href="/matches"
+              href="/improve"
               className={buttonVariants({
                 variant: 'outline',
                 size: 'lg',
               })}
             >
-              Watch Matches
+              Improve
             </Link>
           </div>
         </section>

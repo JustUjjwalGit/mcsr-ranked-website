@@ -386,7 +386,16 @@ function ImprovePageContent() {
                   <div className="flex items-center gap-2 font-heading text-xs font-bold uppercase tracking-wider text-primary">
                     <span>👑 LUDWIG CHECK ("ludwigahgren")</span>
                   </div>
-                  {analysis.player.elo >= 1100 ? (
+                  {analysis.player.username.toLowerCase() === 'ludwigahgren' ? (
+                    <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="font-heading text-sm font-bold text-primary sm:text-base">
+                        Welcome, Mogul! The whole MCSR world is watching you get better 🔥👑
+                      </p>
+                      <p className="font-sans text-xs text-muted-foreground">
+                        Your Elo ({analysis.player.elo.toLocaleString()}). You set the benchmark for the community—keep grinding those splits!
+                      </p>
+                    </div>
+                  ) : analysis.player.elo >= 1100 ? (
                     <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <p className="font-heading text-sm font-bold text-foreground sm:text-base">
                         Bro chill, at least you&apos;re better than Ludwig! 🔥

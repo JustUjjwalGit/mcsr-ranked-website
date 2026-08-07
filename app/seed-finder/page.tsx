@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Search,
   ShieldCheck,
+  Shuffle,
   Sparkles,
   Terminal,
 } from 'lucide-react'
@@ -138,6 +139,7 @@ function SeedCard({
 export default function SeedFinderPage() {
   const [profiles, setProfiles] = useState<SeedProfile[]>([])
   const [selectedProfile, setSelectedProfile] = useState('zsg')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [mode, setMode] = useState<SeedMode>('practice')
   const [seeds, setSeeds] = useState<FsgSeed[]>([])
   const [loadingProfiles, setLoadingProfiles] = useState(true)
@@ -162,11 +164,9 @@ export default function SeedFinderPage() {
 
         setProfiles(data.profiles)
         setRunner(data.runtime?.runner ?? null)
-        setSelectedProfile((current) =>
-          data.profiles?.some((profile) => profile.key === current)
-            ? current
-            : data.profiles?.[0]?.key || current,
-        )
+        const initialProfile = data.profiles[0]?.key || 'zsg'
+        setSelectedProfile(initialProfile)
+        setSelectedCategories([initialProfile])
       } catch {
         setError('Could not load official FSG filters.')
         setDetails('The FSG Online Database could not be reached.')
@@ -178,8 +178,9 @@ export default function SeedFinderPage() {
     loadProfiles()
   }, [])
 
-  async function findSeeds(append = false) {
-    if (!selectedProfile) return
+  async function findSeeds(profileToUse?: string, append = false) {
+    const targetProfile = profileToUse || selectedProfile
+    if (!targetProfile) return
 
     try {
       if (append) {
@@ -192,7 +193,7 @@ export default function SeedFinderPage() {
       setDetails('')
 
       const params = new URLSearchParams({
-        profile: selectedProfile,
+        profile: targetProfile,
         mode,
         count: mode === 'practice' ? '3' : '1',
       })
@@ -229,6 +230,31 @@ export default function SeedFinderPage() {
         setLoading(false)
       }
     }
+  }
+
+  function handleRandomCategorySeed() {
+    const availablePool =
+      selectedCategories.length > 0
+        ? selectedCategories
+        : profiles.map((p) => p.key)
+    
+    if (availablePool.length === 0) return
+
+    const randomChoice =
+      availablePool[Math.floor(Math.random() * availablePool.length)]
+    setSelectedProfile(randomChoice)
+    findSeeds(randomChoice, false)
+  }
+
+  function toggleCategorySelection(profileKey: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    setSelectedCategories((prev) => {
+      if (prev.includes(profileKey)) {
+        const updated = prev.filter((k) => k !== profileKey)
+        return updated
+      } else {        return [...prev, profileKey]
+      }
+    })
   }
 
   function selectProfile(profile: string) {
@@ -273,24 +299,6 @@ export default function SeedFinderPage() {
                 </p>
               </div>
             </div>
-
-            <Button
-              type="button"
-              onClick={() => findSeeds(false)}
-              disabled={loading || loadingMore || loadingProfiles || !activeProfile}
-              className="w-full md:w-auto"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              {loading
-                ? 'Requesting...'
-                : mode === 'verified'
-                  ? 'Get Fresh Seed + Token'
-                  : 'Get Practice Seeds'}
-            </Button>
           </div>
 
           <Card className="border border-primary/30 bg-primary/5 p-3 sm:p-4">
@@ -333,37 +341,124 @@ export default function SeedFinderPage() {
             </div>
           </Card>
 
-          <Card className="border border-border bg-card p-3 sm:p-4">
+          {/* Seed Types & Actions Panel */}
+          <Card className="pixel-panel rounded-lg border border-border bg-card p-3 shadow-[0_14px_34px_rgba(0,0,0,0.24)] text-card-foreground sm:p-4">
             {loadingProfiles ? (
               <SiteLoader label="Loading official FSG filters..." className="py-8" />
             ) : (
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {profiles.map((profile) => {
-                  const active = profile.key === selectedProfile
-
-                  return (
+              <div className="space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-3">
+                  <div>
+                    <h2 className="font-heading text-lg font-bold text-foreground">
+                      Select Seed Categories
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Click a category card to inspect, or check boxes to pick randomly among chosen categories.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <button
-                      key={profile.key}
                       type="button"
-                      onClick={() => selectProfile(profile.key)}
-                      className={`min-h-28 rounded border p-3 text-left transition sm:p-4 ${
-                        active
-                          ? 'border-primary bg-primary/15 text-primary'
-                          : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-                      }`}
+                      onClick={() =>
+                        setSelectedCategories(profiles.map((p) => p.key))
+                      }
+                      className="text-xs text-primary underline-offset-4 hover:underline"
                     >
-                      <span className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                        <span className="font-semibold">{profile.label}</span>
-                        <span className="w-fit rounded border border-current/30 px-2 py-1 text-xs">
-                          {profile.supportedVersions.join(', ') || 'Java'}
-                        </span>
-                      </span>
-                      <span className="mt-2 block text-sm opacity-80">
-                        {profile.description}
-                      </span>
+                      Select all
                     </button>
-                  )
-                })}
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCategories([])}
+                      className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {profiles.map((profile) => {
+                    const active = profile.key === selectedProfile
+                    const isChecked = selectedCategories.includes(profile.key)
+
+                    return (
+                      <div
+                        key={profile.key}
+                        onClick={() => selectProfile(profile.key)}
+                        className={`relative min-h-28 cursor-pointer rounded border p-3 text-left transition sm:p-4 ${
+                          active
+                            ? 'border-primary bg-primary/15 text-primary'
+                            : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onClick={(e) => toggleCategorySelection(profile.key, e)}
+                              onChange={() => {}}
+                              className="h-4 w-4 rounded border-border text-primary accent-primary focus:ring-primary cursor-pointer"
+                              aria-label={`Select ${profile.label} for random pool`}
+                            />
+                            <span className="font-semibold text-foreground">
+                              {profile.label}
+                            </span>
+                          </div>
+                          <span className="shrink-0 rounded border border-current/30 px-2 py-1 text-xs">
+                            {profile.supportedVersions.join(', ') || 'Java'}
+                          </span>
+                        </div>
+                        <span className="mt-2 block text-sm opacity-80 pl-6">
+                          {profile.description}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Convenient Centered Seed Generation Action Buttons */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3 border-t border-border">
+                  <Button
+                    type="button"
+                    onClick={() => findSeeds(undefined, false)}
+                    disabled={loading || loadingMore || loadingProfiles || !activeProfile}
+                    size="lg"
+                    className="w-full sm:w-auto font-heading px-6 shadow-md"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {loading
+                      ? 'Requesting...'
+                      : mode === 'verified'
+                        ? 'Get Fresh Seed + Token'
+                        : `Get Seed (${activeProfile?.label ?? 'Selected'})`}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleRandomCategorySeed}
+                    disabled={loading || loadingMore || loadingProfiles}
+                    size="lg"
+                    className="w-full sm:w-auto font-heading border border-primary/40 px-6 shadow-md hover:border-primary"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Shuffle className="h-4 w-4 text-primary" />
+                    )}
+                    {loading
+                      ? 'Picking...'
+                      : selectedCategories.length > 0
+                        ? `Random Selected Seed (${selectedCategories.length})`
+                        : 'Random Category Seed'}
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
@@ -453,7 +548,7 @@ export default function SeedFinderPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => findSeeds(true)}
+                  onClick={() => findSeeds(undefined, true)}
                   disabled={loading || loadingMore}
                 >
                   {loadingMore ? (
