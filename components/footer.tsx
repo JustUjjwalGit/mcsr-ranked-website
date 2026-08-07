@@ -101,10 +101,6 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground sm:pt-8">
-          <p>© {new Date().getFullYear()} MCSR Ranked. All rights reserved.</p>
-        </div>
       </div>
     </footer>
   )
