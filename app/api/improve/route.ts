@@ -16,6 +16,7 @@ import {
 } from '@/lib/improve-focus'
 import { recommendTutorials, type LearningLevel } from '@/lib/tutorial-recommendations'
 import { getMcsrRankLabel } from '@/lib/mcsr-rank'
+import { segmentDurationFromMilestones } from '@/lib/improve-segments'
 
 const MATCH_COUNT = 100
 const DETAIL_COUNT = 30
@@ -528,9 +529,10 @@ function extractSegments(match: McsrMatch, uuid: string) {
 
   return Object.fromEntries(
     segmentDefinitions.map((segment) => {
-      const end = milestones[segment.to]
-      const start = segment.from ? milestones[segment.from] : 0
-      const value = start != null && end != null && end >= start ? end - start : null
+      const value = segmentDurationFromMilestones(milestones, {
+        from: segment.from,
+        to: segment.to,
+      })
       return [segment.key, value]
     }),
   ) as Record<SegmentKey, number | null>

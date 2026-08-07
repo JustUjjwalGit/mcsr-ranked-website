@@ -16,3 +16,17 @@ export function segmentDuration(
   if (start == null || end <= start) return null
   return end - start
 }
+
+export function segmentDurationFromMilestones(
+  milestones: Record<string, number | null | undefined>,
+  segment: { from: string | null; to: string },
+) {
+  const end = milestones[segment.to]
+  const start = segment.from ? milestones[segment.from] : 0
+
+  if (end == null || !Number.isFinite(end) || end <= 0) return null
+  if (start == null || !Number.isFinite(start) || start < 0) return null
+  if (end <= start) return null
+
+  return end - start
+}

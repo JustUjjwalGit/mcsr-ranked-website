@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { buildHumanSummary } from '@/lib/human-summary'
-import { segmentDuration } from '@/lib/improve-segments'
+import { segmentDuration, segmentDurationFromMilestones } from '@/lib/improve-segments'
 import { getMcsrRankLabel } from '@/lib/mcsr-rank'
 import { getRankTierFromElo, resolveRankTier } from '@/lib/rank-tiers'
 import { recommendTutorials } from '@/lib/tutorial-recommendations'
@@ -20,6 +20,19 @@ test('segment durations reject missing and invalid ordering', () => {
   assert.equal(segmentDuration(null, [100_000]), null)
   assert.equal(segmentDuration(100_000, [120_000]), null)
   assert.equal(segmentDuration(-1, [], true), null)
+})
+
+test('fortress durations start when the player enters the fortress', () => {
+  const milestones = {
+    lootBastion: 1_000,
+    findFortress: 1_500,
+    firstRod: 2_200,
+  }
+
+  assert.equal(
+    segmentDurationFromMilestones(milestones, { from: 'findFortress', to: 'firstRod' }),
+    700,
+  )
 })
 
 test('beginner recommendations prioritize the official portals tutorial', () => {

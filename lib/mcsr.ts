@@ -338,6 +338,11 @@ export function mapMatchToCard(match: McsrMatch, perspectiveNickname?: string) {
     perspectiveNickname || player1?.nickname || player2?.nickname || 'Unknown'
   const vodUrl = match.vod?.[0]?.url
 
+  const durationText = formatMatchTime(match.result?.time)
+  const displayDuration = match.forfeited
+    ? durationText ? `${durationText} (Forfeit)` : 'Forfeit'
+    : durationText
+
   return {
     id: String(match.id),
     player1: player1?.nickname ?? 'Unknown',
@@ -346,7 +351,7 @@ export function mapMatchToCard(match: McsrMatch, perspectiveNickname?: string) {
     winner: winnerNickname,
     result,
     timestamp: new Date(match.date * 1000).toISOString(),
-    duration: formatMatchTime(match.result?.time),
+    duration: displayDuration,
     vodUrl,
     statsUrl: getMatchStatsUrl(replayPlayer, match.id),
     replayPlayer,
