@@ -346,7 +346,8 @@ function ImprovePageContent() {
                       </h2>
                       <p className="text-sm text-muted-foreground">
                         {analysis.player.username} -{' '}
-                        {analysis.player.elo.toLocaleString()} Elo - Rank #
+                        {analysis.player.elo.toLocaleString()} Elo -{' '}
+                        {analysis.comparison.currentTier} · Rank #
                         {analysis.player.rank || '?'}
                       </p>
                     </div>

@@ -18,7 +18,7 @@ export function RankIcon({
   className?: string
 }) {
   const rank = getMcsrRank(elo) ?? (tier ? getMcsrRankFromName(tier) : null)
-  const label = rank ? `${rank.fullName} rank` : 'Unrated'
+  const label = rank ? rank.fullName : 'Unrated'
 
   return (
     <Image

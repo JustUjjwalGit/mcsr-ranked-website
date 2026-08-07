@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { buildHumanSummary } from '@/lib/human-summary'
 import { segmentDuration } from '@/lib/improve-segments'
+import { getMcsrRankLabel } from '@/lib/mcsr-rank'
 import { getRankTierFromElo, resolveRankTier } from '@/lib/rank-tiers'
 import { recommendTutorials } from '@/lib/tutorial-recommendations'
 
@@ -77,6 +78,14 @@ test('official ranked tiers and divisions follow documented Elo thresholds', () 
   assert.equal(getRankTierFromElo(1400).label, 'Emerald III')
   assert.equal(getRankTierFromElo(1800).label, 'Diamond III')
   assert.equal(getRankTierFromElo(2000).label, 'Netherite')
+})
+
+test('rank labels use full tier and division names for improve comparisons', () => {
+  assert.equal(getMcsrRankLabel(0), 'Coal I')
+  assert.equal(getMcsrRankLabel(500), 'Coal III')
+  assert.equal(getMcsrRankLabel(1100), 'Gold III')
+  assert.equal(getMcsrRankLabel(1200), 'Emerald I')
+  assert.equal(getMcsrRankLabel(null), 'Unrated')
 })
 
 test('tier names resolve case-insensitively and unknown tiers stay neutral', () => {

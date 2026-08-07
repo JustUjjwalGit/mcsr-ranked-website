@@ -25,8 +25,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { InfoTip } from '@/components/ui/info-tip'
-import { RankIcon } from '@/components/rank-icon'
+
 import { UserAvatar } from '@/components/user-avatar'
+import { getMcsrRankLabel } from '@/lib/mcsr-rank'
 import { cn } from '@/lib/utils'
 import {
   formatDate,
@@ -179,7 +180,7 @@ function PlayerOverview({ dashboard }: { dashboard: PlayerDashboard }) {
                   : 'No socials connected'}
               </p>
               <p className="mt-1 font-mono text-xs leading-5 text-muted-foreground">
-                Last played {formatRelativeTime(overview.lastRanked)} · Rank #
+                Last played {formatRelativeTime(overview.lastRanked)} · {getMcsrRankLabel(overview.elo)} · Rank #
                 {overview.rank ?? '—'}
               </p>
             </div>
@@ -262,7 +263,6 @@ function PlayerOverview({ dashboard }: { dashboard: PlayerDashboard }) {
               label="Tier"
               value={overview.tier}
               tone="primary"
-              icon={<RankIcon elo={overview.elo} tier={overview.tier} size={28} />}
             />
             <StatBadge label="PB" value={formatDuration(overview.pb)} tone="good" />
             <StatBadge label="Avg completion" value={formatDuration(overview.averageCompletion)} />

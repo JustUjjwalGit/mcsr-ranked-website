@@ -15,6 +15,7 @@ import {
   PRACTICE_FOCUS_RULES,
 } from '@/lib/improve-focus'
 import { recommendTutorials, type LearningLevel } from '@/lib/tutorial-recommendations'
+import { getMcsrRankLabel } from '@/lib/mcsr-rank'
 
 const MATCH_COUNT = 100
 const DETAIL_COUNT = 30
@@ -259,14 +260,24 @@ const videoLibrary: Record<
 const bastionVideoKeys = ['treasure', 'housing', 'stables', 'bridge'] as const
 
 const rankBands = [
-  { name: 'Iron', min: 0, max: 1599 },
-  { name: 'Gold', min: 1600, max: 1799 },
-  { name: 'Diamond', min: 1800, max: 1999 },
-  { name: 'Netherite', min: 2000, max: 2199 },
-  { name: 'Grandmaster', min: 2200, max: Infinity },
+  { name: 'Coal', min: 0, max: 599 },
+  { name: 'Iron', min: 600, max: 899 },
+  { name: 'Gold', min: 900, max: 1199 },
+  { name: 'Emerald', min: 1200, max: 1499 },
+  { name: 'Diamond', min: 1500, max: 1999 },
+  { name: 'Netherite', min: 2000, max: Infinity },
 ]
 
 const fallbackBenchmarks: Record<string, Record<SegmentKey, number>> = {
+  Coal: {
+    overworld: 420_000,
+    findBastion: 120_000,
+    bastion: 330_000,
+    fortress: 330_000,
+    blinding: 270_000,
+    stronghold: 360_000,
+    dragon: 240_000,
+  },
   Iron: {
     overworld: 330_000,
     findBastion: 90_000,
@@ -285,32 +296,32 @@ const fallbackBenchmarks: Record<string, Record<SegmentKey, number>> = {
     stronghold: 270_000,
     dragon: 140_000,
   },
+  Emerald: {
+    overworld: 200_000,
+    findBastion: 65_000,
+    bastion: 215_000,
+    fortress: 230_000,
+    blinding: 130_000,
+    stronghold: 240_000,
+    dragon: 130_000,
+  },
   Diamond: {
-    overworld: 190_000,
-    findBastion: 60_000,
-    bastion: 200_000,
-    fortress: 215_000,
-    blinding: 120_000,
-    stronghold: 225_000,
-    dragon: 120_000,
+    overworld: 175_000,
+    findBastion: 55_000,
+    bastion: 180_000,
+    fortress: 200_000,
+    blinding: 110_000,
+    stronghold: 200_000,
+    dragon: 110_000,
   },
   Netherite: {
-    overworld: 165_000,
-    findBastion: 50_000,
-    bastion: 165_000,
-    fortress: 185_000,
-    blinding: 100_000,
-    stronghold: 190_000,
-    dragon: 105_000,
-  },
-  Grandmaster: {
-    overworld: 140_000,
+    overworld: 150_000,
     findBastion: 45_000,
-    bastion: 140_000,
-    fortress: 160_000,
-    blinding: 85_000,
-    stronghold: 165_000,
-    dragon: 90_000,
+    bastion: 150_000,
+    fortress: 170_000,
+    blinding: 90_000,
+    stronghold: 175_000,
+    dragon: 95_000,
   },
 }
 
@@ -768,6 +779,8 @@ export async function GET(request: Request) {
     const playerElo = profile.eloRate ?? 0
     const currentTier = getRankBand(playerElo)
     const targetTier = getTargetRankBand(playerElo)
+    const currentRankLabel = getMcsrRankLabel(playerElo)
+    const targetRankLabel = getMcsrRankLabel(targetTier.min)
     const detailTargets = matches.slice(0, DETAIL_COUNT)
     const uniqueTargets = [...new Map(detailTargets.map((match) => [match.id, match])).values()]
     const [detailedMatches, targetBenchmarkSegments] = await Promise.all([
@@ -1200,13 +1213,13 @@ export async function GET(request: Request) {
       issueBastionKey ??
       (lastCompleted ? normalizeVideoKey(lastCompleted.bastionType) : null)
     const learningLevel: LearningLevel =
-      playerElo < 900
+      playerElo < 600
         ? 'Beginner'
-        : playerElo < 1200
+        : playerElo < 900
           ? 'Developing'
-          : playerElo < 1500
+          : playerElo < 1200
             ? 'Intermediate'
-            : playerElo < 2000
+            : playerElo < 1500
               ? 'Advanced'
               : 'Expert'
     const dominantEnding = [...endingCounts.entries()].sort(
@@ -1244,8 +1257,8 @@ export async function GET(request: Request) {
             targetBenchmarkSamples: targetBenchmarkSegments.length,
           },
           comparison: {
-            currentTier: currentTier.name,
-            targetTier: targetTier.name,
+            currentTier: currentRankLabel,
+            targetTier: targetRankLabel,
             benchmarkLabel,
             splitComparisons,
           },

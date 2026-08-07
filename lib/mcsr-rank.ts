@@ -42,6 +42,10 @@ export interface McsrRank {
 
 const romanDivision = ['I', 'II', 'III'] as const
 
+function formatMcsrRankName(rank: McsrRankName, division: 1 | 2 | 3 | null) {
+  return division ? `${rank} ${romanDivision[division - 1]}` : rank
+}
+
 export function getMcsrRank(elo: number | null | undefined): McsrRank | null {
   if (elo == null || !Number.isFinite(elo) || elo < 0) return null
 
@@ -58,9 +62,7 @@ export function getMcsrRank(elo: number | null | undefined): McsrRank | null {
 
   return {
     name: rank.name,
-    fullName: division
-      ? `${rank.name} ${romanDivision[division - 1]}`
-      : rank.name,
+    fullName: formatMcsrRankName(rank.name, division),
     division,
     color: rank.color,
   }
@@ -83,10 +85,14 @@ export function getMcsrRankFromName(name: string): McsrRank | null {
 
   return {
     name: rank.name,
-    fullName: division ? `${rank.name} ${romanDivision[division - 1]}` : rank.name,
+    fullName: formatMcsrRankName(rank.name, division),
     division,
     color: rank.color,
   }
+}
+
+export function getMcsrRankLabel(elo: number | null | undefined): string {
+  return getMcsrRank(elo)?.fullName ?? 'Unrated'
 }
 
 export function getMcsrRankAsset(rank: McsrRank | null): string {
