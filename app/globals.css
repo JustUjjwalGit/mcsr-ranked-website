@@ -1,0 +1,606 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-pixel-display), 'Courier New', monospace;
+  --font-sans: var(--font-geist-sans), 'Geist Fallback', sans-serif;
+  --font-mono: var(--font-geist-mono), 'Geist Mono Fallback', monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: 0.15rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+}
+
+:root {
+  --background: #080c09;
+  --foreground: #e6ede8;
+  --card: #101711;
+  --card-foreground: #e6ede8;
+  --popover: #121a13;
+  --popover-foreground: #e6ede8;
+  --primary: #52b524;
+  --primary-foreground: #051004;
+  --secondary: #162419;
+  --secondary-foreground: #e6ede8;
+  --muted: #162219;
+  --muted-foreground: #8aa390;
+  --accent: #68c732;
+  --accent-foreground: #051004;
+  --destructive: #e04848;
+  --border: #213625;
+  --input: #0b120c;
+  --ring: #5cb82a;
+  --chart-1: #52b524;
+  --chart-2: #68c732;
+  --chart-3: #8aa390;
+  --chart-4: #d9a441;
+  --chart-5: #213625;
+  --radius: 0.25rem;
+  --sidebar: #101711;
+  --sidebar-foreground: #e6ede8;
+  --sidebar-primary: #52b524;
+  --sidebar-primary-foreground: #051004;
+  --sidebar-accent: #162219;
+  --sidebar-accent-foreground: #e6ede8;
+  --sidebar-border: #213625;
+  --sidebar-ring: #5cb82a;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+  body {
+    @apply text-foreground relative min-h-screen;
+    background-color: var(--background);
+    overflow-x: hidden;
+    isolation: isolate;
+  }
+
+  /* A quiet, theme-neutral voxel texture sits behind the page content. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.13;
+    background-image: url('/voxel-outlines.jpg');
+    background-size: min(960px, 100vw) auto;
+    background-position: center top;
+    background-repeat: repeat;
+    filter: grayscale(1) brightness(0.42) contrast(0.85);
+    mix-blend-mode: multiply;
+    mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 84%, transparent);
+  }
+
+  h1,
+  h2 {
+    font-family: var(--font-pixel-display), 'Courier New', monospace;
+    letter-spacing: 0.02em;
+    text-wrap: balance;
+  }
+
+  h3, h4, h5, h6, p, span, div, table, input, button, select {
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+  }
+
+  button,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  .glass-panel,
+  .surface-panel,
+  .mc-card {
+    @apply border border-border bg-card shadow-md;
+    position: relative;
+    isolation: isolate;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--card) 86%, transparent), color-mix(in srgb, var(--card) 86%, transparent)),
+      url('/Voxeloutlines2.jpg');
+    background-size: auto, 420px auto;
+    background-position: center, center;
+    background-repeat: no-repeat, repeat;
+    background-blend-mode: normal, soft-light;
+  }
+}
+
+.site-content {
+  position: relative;
+  min-height: 100vh;
+}
+
+.pixel-panel {
+  position: relative;
+  background-color: var(--card);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--card) 86%, transparent), color-mix(in srgb, var(--card) 86%, transparent)),
+    url('/Voxeloutlines2.jpg');
+  background-size: auto, 420px auto;
+  background-position: center, center;
+  background-repeat: no-repeat, repeat;
+  background-blend-mode: normal, soft-light;
+  border: 1px solid var(--border);
+  box-shadow: inset 1px 1px 0 0 rgba(255, 255, 255, 0.04), inset -1px -1px 0 0 rgba(0, 0, 0, 0.4);
+}
+
+.pixel-strip {
+  position: relative;
+  background-color: var(--background);
+  background-image:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.2) 50%, transparent 50%),
+    linear-gradient(rgba(0, 0, 0, 0.2) 50%, transparent 50%);
+  background-size: 12px 12px;
+  border-bottom: 2px solid var(--border);
+}
+
+.pixel-banner {
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  border: 2px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  box-shadow:
+    inset 2px 2px 0 0 rgba(250, 0, 0, 0.15),
+    inset -2px -2px 0 0 rgba(0, 0, 0, 0.45),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.pixel-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: color-mix(in srgb, var(--primary) 10%, #07110a);
+  background-image: url('/Voxeloutlines2.jpg');
+  background-size: 560px auto;
+  background-position: center;
+  background-repeat: repeat;
+  background-blend-mode: soft-light;
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.font-heading {
+  font-family: var(--font-pixel-display), 'Courier New', monospace !important;
+}
+
+.font-sans {
+  font-family: var(--font-geist-sans), system-ui, sans-serif !important;
+}
+
+.info-tip-trigger {
+  display: inline-flex;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  cursor: help;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  padding: 0 0.2rem;
+  color: var(--muted-foreground);
+  font: 500 0.72rem/1 var(--font-geist-sans), sans-serif;
+  box-shadow: none;
+  opacity: 0.72;
+  transition: background-color 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+
+.info-tip-trigger[data-has-text='true'] {
+  min-width: auto;
+  padding-inline: 0.35rem;
+}
+
+.info-tip-trigger:hover,
+.info-tip-trigger[aria-expanded='true'] {
+  background: color-mix(in oklch, var(--muted), transparent 45%);
+  color: var(--foreground);
+  opacity: 1;
+}
+
+.info-tip-trigger:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.info-tip-badge {
+  display: inline-flex;
+  width: 0.95rem;
+  height: 0.95rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 9999px;
+  font-family: var(--font-geist-sans), sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.info-tip-popup {
+  position: fixed;
+  z-index: 1000;
+  width: 18rem;
+  max-width: calc(100vw - 20px);
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: color-mix(in oklch, var(--popover), black 8%);
+  padding: 0.8rem 0.9rem;
+  color: var(--popover-foreground);
+  font: 400 0.875rem/1.45 var(--font-geist-sans), sans-serif;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.5);
+}
+
+/* Glow effects for gaming aesthetic */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
+}
+
+.glow-primary-intense {
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.6), 0 0 60px rgba(139, 92, 246, 0.3);
+}
+
+/* Even-width numbers for tables and stats */
+.tabular-figures {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Crisp Minecraft skin faces */
+.image-rendering-pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Smooth transitions */
+.transition-smooth {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Card hover effect */
+.card-hover {
+  @apply transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-primary/10 hover:border-primary/50;
+}
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    90deg,
+    var(--color-muted),
+    var(--color-muted) 20%,
+    var(--color-muted) 40%,
+    var(--color-muted)
+  );
+  background-size: 1000px 100%;
+}
+
+.loader {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  display: inline-block;
+}
+
+.loader::before,
+.loader::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 3px solid color-mix(in oklch, var(--primary), white 10%);
+  border-radius: 8px;
+  box-shadow:
+    0 0 22px color-mix(in oklch, var(--primary), transparent 55%),
+    inset 0 0 14px color-mix(in oklch, var(--primary), transparent 72%);
+  animation: loader-spin 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.loader::after {
+  inset: 14px;
+  border-color: color-mix(in oklch, var(--accent), white 8%);
+  animation-direction: reverse;
+  animation-duration: 0.85s;
+}
+
+@keyframes loader-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  @apply h-2 w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-muted hover:bg-muted-foreground;
+}
+
+/* Selection styling */
+::selection {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Keep the phone stand display inside one viewport without scrolling. */
+@media (max-height: 680px) {
+  .nb-stand-enhanced .nb-stand-predictions {
+    display: none;
+  }
+}
+
+@media (max-height: 520px) {
+  .nb-stand-enhanced .nb-stand-secondary {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Custom Buttons & Links Design System
+   ========================================================================== */
+
+/* 1. Button Pandora (Main Browse Players button) */
+.button--pandora {
+  position: relative;
+  display: inline-block;
+  background: var(--border, #000);
+  font-weight: 700;
+  padding: 0;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.button--pandora span {
+  display: block;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.85rem 1.75rem;
+  border: 1px solid var(--border, #000);
+  border-radius: 0;
+  transform: translate3d(-4px, -4px, 0);
+  transition: transform 0.3s cubic-bezier(0.7, 0, 0.2, 1), background-color 0.2s, color 0.2s;
+  font-family: var(--font-heading), sans-serif;
+  letter-spacing: 0.03em;
+}
+
+.button--pandora:hover span {
+  transform: translate3d(-8px, -8px, 0);
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.button--pandora:active span {
+  transform: translate3d(-2px, -2px, 0);
+}
+
+/* 2. Link Eirene (Footer & Contact links) */
+.link--eirene {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-sans), europa, sans-serif;
+  font-weight: bold;
+  text-decoration: none;
+  color: var(--muted-foreground);
+  transition: color 0.2s;
+}
+
+.link--eirene:hover {
+  color: var(--foreground);
+}
+
+.link--eirene::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  border-radius: 20px;
+  background: var(--primary);
+  opacity: 1;
+  transform: scale3d(1.2, 0.1, 1);
+  transform-origin: 0% 50%;
+  transition: transform 0.2s, opacity 0.2s;
+  transition-timing-function: cubic-bezier(0.8, 0, 0.1, 1);
+}
+
+.link--eirene:hover::before {
+  transition-timing-function: cubic-bezier(0.2, 0.57, 0.67, 1.53);
+  transition-duration: 0.4s;
+  opacity: 0.8;
+  transform: scale3d(1, 1, 1);
+}
+
+.link--eirene span {
+  transform: translate3d(0, 0, 0);
+  display: inline-block;
+  transition: transform 0.2s 0.05s cubic-bezier(0.2, 0.57, 0.67, 1.53);
+}
+
+.link--eirene:hover span {
+  transform: translate3d(0, -4px, 0);
+  transition-timing-function: cubic-bezier(0.8, 0, 0.1, 1);
+  transition-duration: 0.4s;
+  transition-delay: 0s;
+}
+
+/* 3. Button Anthe (View Profile button on Players page cards) */
+.button--anthe {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.25rem;
+  font-family: var(--font-heading), bely-display, sans-serif;
+  font-weight: 700;
+  color: var(--primary-foreground);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.button--anthe::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--primary);
+  -webkit-clip-path: polygon(0% 0%, 100% 0, 100% 50%, 100% 100%, 0% 100%);
+  clip-path: polygon(0% 0%, 100% 0, 100% 50%, 100% 100%, 0% 100%);
+  transition: clip-path 0.4s cubic-bezier(0.2, 1, 0.8, 1), -webkit-clip-path 0.4s cubic-bezier(0.2, 1, 0.8, 1), background-color 0.3s;
+  z-index: 0;
+}
+
+.button--anthe:hover::before {
+  background: var(--accent);
+  -webkit-clip-path: polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%);
+  clip-path: polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%);
+}
+
+.button--anthe span {
+  position: relative;
+  z-index: 1;
+  display: block;
+  color: var(--primary-foreground);
+  transition: transform 0.4s cubic-bezier(0.2, 1, 0.8, 1);
+}
+
+.button--anthe:hover span {
+  transform: translate3d(-10px, 0, 0);
+  color: var(--accent-foreground);
+}
+
+/* 4. Button Telesto (Compare & Improve buttons on Player Profile) */
+.button--telesto {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: var(--font-heading), obvia, sans-serif;
+  font-weight: 800;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  height: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0 1.15rem;
+  border-radius: 4px;
+  border: 1px solid var(--primary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.button--telesto:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.button--telesto span {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.button--telesto > span {
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+}
+
+.button--telesto:hover > span > span {
+  animation: MoveRightInitial 0.1s forwards, MoveRightEnd 0.3s forwards 0.2s;
+}
+
+@keyframes MoveRightInitial {
+  to {
+    transform: translate3d(105%, 0, 0);
+  }
+}
+
+@keyframes MoveRightEnd {
+  from {
+    transform: translate3d(-105%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+

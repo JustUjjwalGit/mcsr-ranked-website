@@ -1,0 +1,12 @@
+# Dependencies and build
+node_modules
+.next/
+out/
+
+# Environment
+.env*.local
+
+# Tooling
+.vercel/
+.DS_Store
+package-lock.json
